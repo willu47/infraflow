@@ -48,17 +48,17 @@ function formulate_gmcnf(; verbose = true)
     # demand at node by commodity
     demand = zeros((num_nodes, num_comm))
 
-    demand[1, 1] = 3  # household requires 3 water
-    demand[1, 2] = 5  # household requires 5 electricity
+    demand[4, 3] = 9999  # unlimited diesel resource
+    demand[1, 1] = -3.0  # household requires 3 water
+    demand[1, 2] = -5.0  # household requires 5 electricity
 
     inflow_cost = zeros((num_nodes, num_nodes, num_comm))
     outflow_cost = zeros((num_nodes, num_nodes, num_comm))
 
     outflow_cost[4, 2, 3] = 0.20  # diesel costs 0.20 £/kWh
-    outflow_cost[2, 3, 2] = 0.03  # water production costs 0.03 £/l
     outflow_cost[2, 1, 2] = 0.01  # electricity distribution costs 0.01 £/kWh
     outflow_cost[2, 3, 2] = 0.01  # electricity distribution costs 0.01 £/kWh
-
+    outflow_cost[3, 1, 1] = 0.03  # water production costs 0.03 £/l
 
     # describe the commodity requirements for an in- or out-flow
     requirements_outflow = zeros((num_nodes, num_nodes, num_comm, num_comm))
@@ -71,27 +71,34 @@ function formulate_gmcnf(; verbose = true)
     concurrent_inflow = zeros((num_nodes, num_nodes, num_comm))
     
     transformation[4, 2, 3, 2] = 3.0  # power plant requires 3 diesel to produce 1 electricity
-    transformation[4, 2, 3, 3] = 1.0
-    transformation[4, 2, 2, 2] = 1.0
+    transformation[2, 1, 2, 2] = 1.0
+    transformation[2, 3, 2, 2] = 1.0
+    transformation[3, 1, 1, 1] = 1.0
+
     requirements_outflow[4, 2, 3, 3] = 1.0  # diesel is produced from diesel resource
-    requirements_outflow[2, 3, 2, 1] = 0.2  # water plant requires 0.2 electricity to produce 1 water
-    requirements_outflow[2, 3, 2, 2] = 1.0
+    requirements_inflow[4, 2, 3, 2] = 1.0  # electricity is produced from diesel
+    requirements_outflow[2, 3, 2, 2] = 1.0  # water plant requires 0.2 electricity to produce 1 water
+    requirements_inflow[2, 3, 2, 2] = 1.0
     requirements_outflow[2, 3, 1, 1] = 1.0
+    requirements_inflow[2, 3, 1, 1] = 1.0
+    requirements_outflow[3, 1, 2, 1] = 1.2
+    requirements_inflow[3, 1, 1, 1] = 1.0
+    requirements_outflow[2, 1, 2, 2] = 1.0
+    requirements_inflow[2, 1, 2, 2] = 1.0
+
 
     flow_bounds = fill(999, (num_nodes, num_nodes, num_comm))
 
     model = Model(with_optimizer(GLPK.Optimizer))
 
     outflow = @variable(model, 
-                        [i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
+                        outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
                         lower_bound = 0, 
-                        upper_bound = flow_bounds[i, j, k],
-                        base_name="outflow")
+                        upper_bound = flow_bounds[i, j, k])
     inflow = @variable(model, 
                        inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
                        lower_bound = 0,
-                       upper_bound = flow_bounds[i, j, k],
-                       base_name="inflow")
+                       upper_bound = flow_bounds[i, j, k])
     
     @objective(
         model, 
@@ -142,7 +149,7 @@ function formulate_gmcnf(; verbose = true)
     flow_transformation = @constraint(
         model,
         flow_transformation[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm],
-        sum(transformation[i, j, k, l] * outflow[i, j, l] for l in 1:num_comm) 
+        sum(transformation[i, j, l, k] * outflow[i, j, l] for l in 1:num_comm) 
         == inflow[i, j, k])
 
     self_constraint_outflow = @constraint(
@@ -169,12 +176,20 @@ end
 @time populate_gmncf(model)
 
 println("Compiled model, now running")
-JuMP.optimize!(model)
+@time JuMP.optimize!(model)
 println("Finished running, objective: $(JuMP.objective_value(model))")
 
 @test JuMP.termination_status(model) == MOI.OPTIMAL
 @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 # @test JuMP.objective_value(model) == 225700.0
+
+outflow = model[:outflow]
+for var in outflow
+    if JuMP.value(var) != 0.0
+        println("$(var): $(JuMP.value(var))")
+    end
+end
+
 
 # @time gmcnf(verbose = true)
 # @time gmcnf(verbose = true)
