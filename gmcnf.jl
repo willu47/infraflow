@@ -59,10 +59,10 @@ function formulate_gmcnf(; verbose = true)
     transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
     concurrent_outflow = zeros((num_nodes, num_nodes, num_comm))
     concurrent_inflow = zeros((num_nodes, num_nodes, num_comm))
-    flow_bounds = fill(999, (num_nodes, num_nodes, num_comm))
+    flow_bounds = fill(999999, (num_nodes, num_nodes, num_comm))
 
-    demand[3, 2] = 9999  # unlimited diesel resources
-    demand[1, 1] = -5.0  # household requires 5 electricity
+    demand[3, 2] = 999999  # unlimited diesel resources
+    demand[1, 1] = -5000.0  # household requires 5 MWh electricity
 
     outflow_cost[3, 2, 2] = 0.20  # diesel costs 0.20 £/kWh
     outflow_cost[2, 1, 1] = 0.01  # electricity distribution costs 0.01 £/kWh
@@ -164,28 +164,34 @@ function populate_gmncf(model::JuMP.Model)
 
 end
 
+function print_vars(var_object)
+    for var in var_object
+        if JuMP.value(var) != 0.0
+            println("$(var): $(JuMP.value(var))")
+        end
+    end
+end
+
 @time model = formulate_gmcnf(verbose = true)
 @time populate_gmncf(model)
 
 println("Compiled model, now running")
 @time JuMP.optimize!(model)
-println("Finished running, objective: $(JuMP.objective_value(model))")
+println("Finished running, objective: £$(JuMP.objective_value(model))")
 
 @test JuMP.termination_status(model) == MOI.OPTIMAL
 @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 # @test JuMP.objective_value(model) == 225700.0
 
 outflow = model[:outflow]
+inflow = model[:inflow]
 
-for var in outflow
-    if JuMP.value(var) != 0.0
-        println("$(var): $(JuMP.value(var))")
-    end
-end
+print_vars(outflow)
+print_vars(inflow)
 
-@test JuMP.value(outflow[2, 1, 1]) == 5.0
-@test JuMP.value(outflow[2, 2, 2]) == 15.0
-@test JuMP.value(outflow[3, 2, 2]) == 15.0
+@test JuMP.value(outflow[2, 1, 1]) == 5000.0
+@test JuMP.value(outflow[2, 2, 2]) == 5000.0
+@test JuMP.value(outflow[3, 2, 2]) == 15000.0
 
-# @time gmcnf(verbose = true)
-# @time gmcnf(verbose = true)
+@time JuMP.optimize!(model)
+@time JuMP.optimize!(model)
