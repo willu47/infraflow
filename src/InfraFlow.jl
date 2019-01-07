@@ -1,4 +1,4 @@
-module gmcnf
+module InfraFlow
 
 using JuMP, GLPK, Test
 const MOI = JuMP.MathOptInterface
@@ -34,7 +34,7 @@ end
 
 """
 
-``\sum 
+``sum 
 
 """
 function formulate_gmcnf(; verbose = true)
@@ -248,32 +248,32 @@ function print_duals(con_object)
     end
 end
 
-@time model = formulate_gmcnf(verbose = true)
-@time populate_gmncf(model)
+function run()
 
-println("Compiled model, now running")
-@time JuMP.optimize!(model)
-println("Finished running, objective: £$(JuMP.objective_value(model))")
+    @time model = formulate_gmcnf(verbose = true)
+    @time populate_gmncf(model)
 
-@test JuMP.termination_status(model) == MOI.OPTIMAL
-@test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
-# @test JuMP.objective_value(model) == 225700.0
+    println("Compiled model, now running")
+    @time JuMP.optimize!(model)
+    println("Finished running, objective: £$(JuMP.objective_value(model))")
 
-outflow = model[:outflow]
-inflow = model[:inflow]
-new_capacity = model[:total_annual_capacity]
+    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
+    # @test JuMP.objective_value(model) == 225700.0
 
-print_vars(outflow)
-print_vars(inflow)
-print_vars(new_capacity)
+    outflow = model[:outflow]
+    inflow = model[:inflow]
+    new_capacity = model[:total_annual_capacity]
 
-@test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
-@test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
-@test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
-@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
+    print_vars(outflow)
+    print_vars(inflow)
+    print_vars(new_capacity)
 
-@time JuMP.optimize!(model)
-@time JuMP.optimize!(model)
+    @test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
+    @test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
+    @test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
+    @test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
 
+end
 
 end
