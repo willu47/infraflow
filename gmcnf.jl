@@ -49,6 +49,7 @@ function formulate_gmcnf(; verbose = true)
     demand = zeros((num_nodes, num_comm))
 
     capacity_cost = zeros((num_nodes, num_nodes, num_comm))
+    cap2act = zeros((num_nodes, num_nodes, num_comm))
 
     inflow_cost = zeros((num_nodes, num_nodes, num_comm))
     outflow_cost = zeros((num_nodes, num_nodes, num_comm))
@@ -74,6 +75,14 @@ function formulate_gmcnf(; verbose = true)
     # Investment costs
     capacity_cost[2, 2, 1] = 800  # £/kW for the diesel plant
     capacity_cost[3, 3, 2] = 10  # £/kW for diesel imports
+
+    # Relate capacity of a node to its activity
+    cap2act[2, 1, 1] = 1
+    cap2act[2, 2, 2] = 1
+    cap2act[2, 2, 1] = 1
+    cap2act[2, 2, 1] = 8760  # Power plant produce 8760 kWh electricity per year per kW capacity
+    cap2act[3, 2, 2] = 1
+    cap2act[3, 3, 2] = 8760  # Diesel resource produce 8760 kWh diesel per year per kW capacity
     
     # Transformation of commodities
     transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
@@ -109,12 +118,12 @@ function formulate_gmcnf(; verbose = true)
     @constraint(
         model,
         capacity_exp_outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
-        outflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k])
+        outflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k] * cap2act[i, j, k])
 
     @constraint(
         model,
         capacity_exp_inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
-        inflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k])
+        inflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k] * cap2act[i, j, k])
 
     @objective(
         model, 
