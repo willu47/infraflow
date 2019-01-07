@@ -16,6 +16,10 @@ in Space Logistics and Complex Infrastructure Systems.”
 Masssachusett Institute of Technology, 2013.
 """
 
+"""
+    make_edge_dict(edge_nodes, other_nodes)
+
+"""
 function make_edge_dict(edge_nodes, other_nodes)
     edges = Dict{Int8,Array{Int8}}()
     for node in Set(edge_nodes)
@@ -33,8 +37,9 @@ function make_edge_dict(edge_nodes, other_nodes)
 end
 
 """
+    formulate_gmcnf()
 
-``sum 
+``\\sum_{ijky} c_{ijky}x_{ijky}`` 
 
 """
 function formulate_gmcnf(; verbose = true)
