@@ -32,6 +32,8 @@ function formulate_gmcnf(; verbose = true)
     nodes = ["household", "power_station", "diesel_resource"]
     edges = [3 2; 2 1; 2 2; 3 3;]
     commodities = ["electricity", "diesel"]
+
+    years = [2018, 2019, 2020, 2025]
      
     source_nodes = view(edges, :, 1)
     sink_nodes = view(edges, :, 2)
@@ -44,9 +46,10 @@ function formulate_gmcnf(; verbose = true)
     num_nodes = length(nodes)
     num_edges = length(edges)
     num_comm = length(commodities)
+    num_years = length(years)
     
     # demand at node by commodity
-    demand = zeros((num_nodes, num_comm))
+    demand = zeros((num_nodes, num_comm, num_years))
 
     capacity_cost = zeros((num_nodes, num_nodes, num_comm))
     cap2act = zeros((num_nodes, num_nodes, num_comm))
@@ -65,8 +68,11 @@ function formulate_gmcnf(; verbose = true)
     flow_bounds = fill(0, (num_nodes, num_nodes, num_comm))
 
     # Demands and Resources
-    demand[3, 2] = 999999  # unlimited diesel resources
-    demand[1, 1] = -5000.0  # household requires 5 MWh electricity
+    demand[3, 2, :] .= 999999.0  # unlimited diesel resources
+    demand[1, 1, 1] = -5000.0  # household requires 5 MWh electricity
+    demand[1, 1, 2] = -6000.0  # household requires 6 MWh electricity
+    demand[1, 1, 3] = -7000.0  # household requires 7 MWh electricity
+    demand[1, 1, 4] = -8000.0  # household requires 8 MWh electricity
 
     # Operational costs
     outflow_cost[3, 2, 2] = 0.20  # diesel costs £0.20/kWh
@@ -105,42 +111,42 @@ function formulate_gmcnf(; verbose = true)
     model = Model(with_optimizer(GLPK.Optimizer))
 
     capacity = @variable(model,
-                         capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
+                         capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
                          lower_bound = 0)
 
     outflow = @variable(model, 
-                        outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
+                        outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years], 
                         lower_bound = 0)
     inflow = @variable(model, 
-                       inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
+                       inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years], 
                        lower_bound = 0)
     
     @constraint(
         model,
-        capacity_exp_outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
-        outflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k] * cap2act[i, j, k])
+        capacity_exp_outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
+        outflow[i, j, k, y] <= flow_bounds[i, j, k] + capacity[i, j, k, y] * cap2act[i, j, k])
 
     @constraint(
         model,
-        capacity_exp_inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
-        inflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k] * cap2act[i, j, k])
+        capacity_exp_inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
+        inflow[i, j, k, y] <= flow_bounds[i, j, k] + capacity[i, j, k, y] * cap2act[i, j, k])
 
     @objective(
         model, 
         Min, 
-        sum(outflow_cost[i, j, k] * outflow[i, j, k] 
-            + inflow_cost[i, j, k] * inflow[i, j, k] 
-            + capacity_cost[i, j, k] * capacity[i, j, k]
-            for i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm)
+        sum(outflow_cost[i, j, k] * outflow[i, j, k, y] 
+            + inflow_cost[i, j, k] * inflow[i, j, k, y] 
+            + capacity_cost[i, j, k] * capacity[i, j, k, y]
+            for i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, y=1:num_years)
         )
         
 
     requirements_outflow_const = @expression(
         model,
-        requirements_outflow_const[i=1:num_nodes, k=1:num_comm],
+        requirements_outflow_const[i=1:num_nodes, k=1:num_comm, y=1:num_years],
         if haskey(outflow_edges, i)
             sum(
-                sum(requirements_outflow[i, j, k, l] for l in 1:num_comm) * outflow[i, j, k]
+                sum(requirements_outflow[i, j, k, l] for l in 1:num_comm) * outflow[i, j, k, y]
                 for j in outflow_edges[i]
             )
                 
@@ -152,10 +158,10 @@ function formulate_gmcnf(; verbose = true)
 
     requirements_inflow_const = @expression(
         model,
-        requirements_inflow_const[i=1:num_nodes, k=1:num_comm],
+        requirements_inflow_const[i=1:num_nodes, k=1:num_comm, y=1:num_years],
         if haskey(inflow_edges, i)
             sum(
-                sum(requirements_inflow[h, i, k, m] for m in 1:num_comm) * inflow[h, i, k]
+                sum(requirements_inflow[h, i, k, m] for m in 1:num_comm) * inflow[h, i, k, y]
                 for h in inflow_edges[i]
             )
 
@@ -167,15 +173,15 @@ function formulate_gmcnf(; verbose = true)
 
     mass_balance = @constraint(
         model,
-        mass_balance[i=1:num_nodes, k=1:num_comm],
-        requirements_outflow_const[i, k] - requirements_inflow_const[i, k]
-        <= demand[i, k])
+        mass_balance[i=1:num_nodes, k=1:num_comm, y=1:num_years],
+        requirements_outflow_const[i, k, y] - requirements_inflow_const[i, k, y]
+        <= demand[i, k, y])
 
     flow_transformation = @constraint(
         model,
-        flow_transformation[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm],
-        sum(transformation[i, j, l, k] * outflow[i, j, l] for l in 1:num_comm) 
-        == inflow[i, j, k])
+        flow_transformation[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, y=1:num_years],
+        sum(transformation[i, j, l, k] * outflow[i, j, l, y] for l in 1:num_comm) 
+        == inflow[i, j, k, y])
 
     return model
 end
