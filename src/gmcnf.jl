@@ -1,3 +1,5 @@
+module gmcnf
+
 using JuMP, GLPK, Test
 const MOI = JuMP.MathOptInterface
 
@@ -30,7 +32,11 @@ function make_edge_dict(edge_nodes, other_nodes)
     return edges
 end
 
+"""
 
+``\sum 
+
+"""
 function formulate_gmcnf(; verbose = true)
     nodes = ["household", "power_station", "diesel_resource"]
     edges = [3 2; 2 1; 2 2; 3 3;]
@@ -268,3 +274,6 @@ print_vars(new_capacity)
 
 @time JuMP.optimize!(model)
 @time JuMP.optimize!(model)
+
+
+end
