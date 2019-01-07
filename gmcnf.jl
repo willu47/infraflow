@@ -48,6 +48,8 @@ function formulate_gmcnf(; verbose = true)
     # demand at node by commodity
     demand = zeros((num_nodes, num_comm))
 
+    capacity_cost = zeros((num_nodes, num_nodes, num_comm))
+
     inflow_cost = zeros((num_nodes, num_nodes, num_comm))
     outflow_cost = zeros((num_nodes, num_nodes, num_comm))
     
@@ -57,47 +59,69 @@ function formulate_gmcnf(; verbose = true)
     
     # describe the flow gain/loss or transformation between commodities
     transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
-    concurrent_outflow = zeros((num_nodes, num_nodes, num_comm))
-    concurrent_inflow = zeros((num_nodes, num_nodes, num_comm))
-    flow_bounds = fill(999999, (num_nodes, num_nodes, num_comm))
+    
+    # upper bound on operational decision variables (capacity)
+    flow_bounds = fill(0, (num_nodes, num_nodes, num_comm))
 
+    # Demands and Resources
     demand[3, 2] = 999999  # unlimited diesel resources
     demand[1, 1] = -5000.0  # household requires 5 MWh electricity
 
-    outflow_cost[3, 2, 2] = 0.20  # diesel costs 0.20 £/kWh
-    outflow_cost[2, 1, 1] = 0.01  # electricity distribution costs 0.01 £/kWh
-    
-    transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
-    transformation[2, 1, 1, 1] = 1.0
-    transformation[3, 2, 2, 2] = 1.0
+    # Operational costs
+    outflow_cost[3, 2, 2] = 0.20  # diesel costs £0.20/kWh
+    outflow_cost[2, 1, 1] = 0.01  # electricity distribution costs £0.01/kWh
 
-    # power plant
+    # Investment costs
+    capacity_cost[2, 2, 1] = 800  # £/kW for the diesel plant
+    capacity_cost[3, 3, 2] = 10  # £/kW for diesel imports
+    
+    # Transformation of commodities
+    transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
+    transformation[2, 1, 1, 1] = 0.93  # 7% losses in distribution of electricity
+    transformation[3, 2, 2, 2] = 1.0  # no losses in distribution of diesel
+
+    # Power plant
     requirements_outflow[2, 2, 2, 1] = 3.0  # power plant requires 3 kWh diesel per 1 kWh electricity
     requirements_outflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
     requirements_inflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
     
-    requirements_outflow[2, 1, 1, 1] = 1.0  # power plant sends electricity to household
+    # Distribution of electricity
+    requirements_outflow[2, 1, 1, 1] = 1.0  # Send electricity to household from power plant
     requirements_inflow[2, 1, 1, 1] = 1.0
 
-    requirements_outflow[3, 2, 2, 2] = 1.0  # diesel is produced from diesel resource
+    # Distribution of diesel
+    requirements_outflow[3, 2, 2, 2] = 1.0  # Send diesel to power plant from diesel resource
     requirements_inflow[3, 2, 2, 2] = 1.0
 
     model = Model(with_optimizer(GLPK.Optimizer))
 
+    capacity = @variable(model,
+                         capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
+                         lower_bound = 0)
+
     outflow = @variable(model, 
                         outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
-                        lower_bound = 0, 
-                        upper_bound = flow_bounds[i, j, k])
+                        lower_bound = 0)
     inflow = @variable(model, 
                        inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm], 
-                       lower_bound = 0,
-                       upper_bound = flow_bounds[i, j, k])
+                       lower_bound = 0)
     
+    @constraint(
+        model,
+        capacity_exp_outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
+        outflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k])
+
+    @constraint(
+        model,
+        capacity_exp_inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm],
+        inflow[i, j, k] <= flow_bounds[i, j, k] + capacity[i, j, k])
+
     @objective(
         model, 
         Min, 
         sum(outflow_cost[i, j, k] * outflow[i, j, k] 
             + inflow_cost[i, j, k] * inflow[i, j, k] 
+            + capacity_cost[i, j, k] * capacity[i, j, k]
             for i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm)
         )
         
@@ -144,16 +168,6 @@ function formulate_gmcnf(; verbose = true)
         sum(transformation[i, j, l, k] * outflow[i, j, l] for l in 1:num_comm) 
         == inflow[i, j, k])
 
-    self_constraint_outflow = @constraint(
-        model,
-        self_constraint_outflow[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm],
-        concurrent_outflow[i, j, k] * outflow[i, j, k] <= 0)
-
-    self_constraint_inflow = @constraint(
-        model,
-        self_constraint_inflow[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm],
-        concurrent_inflow[i, j, k] * inflow[i, j, k] <= 0)
-
     return model
 end
 
@@ -172,6 +186,14 @@ function print_vars(var_object)
     end
 end
 
+function print_duals(con_object)
+    for con in con_object
+        if JuMP.shadow_price(con) != 0.0
+            println("$(con): $(JuMP.shadow_price(con))")
+        end
+    end
+end
+
 @time model = formulate_gmcnf(verbose = true)
 @time populate_gmncf(model)
 
@@ -185,13 +207,19 @@ println("Finished running, objective: £$(JuMP.objective_value(model))")
 
 outflow = model[:outflow]
 inflow = model[:inflow]
+capacity = model[:capacity]
+
+cap_con = model[:capacity_exp_outflow]
 
 print_vars(outflow)
 print_vars(inflow)
+print_vars(capacity)
+print_duals(cap_con)
 
-@test JuMP.value(outflow[2, 1, 1]) == 5000.0
-@test JuMP.value(outflow[2, 2, 2]) == 5000.0
-@test JuMP.value(outflow[3, 2, 2]) == 15000.0
+@test JuMP.value(inflow[2, 1, 1]) ≈ 5000
+@test JuMP.value(outflow[2, 1, 1]) ≈ 5376.344086021505
+@test JuMP.value(outflow[2, 2, 2]) ≈ 5376.344086021505
+@test JuMP.value(outflow[3, 2, 2]) ≈ 16129.032258064515
 
 @time JuMP.optimize!(model)
 @time JuMP.optimize!(model)
