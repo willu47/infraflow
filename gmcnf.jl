@@ -5,9 +5,12 @@ const MOI = JuMP.MathOptInterface
 Author: Will Usher
 Date: 3rd January 2018
 
-JuMP implementation of generalized multi-commodity network flow as found in 
-Ishimatsu, Takuto. “Generalized Multi-Commodity Network Flows : Case Studies in 
-Space Logistics and Complex Infrastructure Systems.” 
+A linear programming new_capacity expansion generalized multi-commodity network 
+flow implemented using JuMP/Julia based on generalized multi-commodity network 
+flow as found in:
+
+Ishimatsu, Takuto. “Generalized Multi-Commodity Network Flows : Case Studies 
+in Space Logistics and Complex Infrastructure Systems.” 
 Masssachusett Institute of Technology, 2013.
 """
 
@@ -64,7 +67,7 @@ function formulate_gmcnf(; verbose = true)
     # describe the flow gain/loss or transformation between commodities
     transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
     
-    # upper bound on operational decision variables (capacity)
+    # upper bound on operational decision variables (new_capacity)
     flow_bounds = fill(0, (num_nodes, num_nodes, num_comm))
 
     # Demands and Resources
@@ -82,13 +85,13 @@ function formulate_gmcnf(; verbose = true)
     capacity_cost[2, 2, 1] = 800  # £/kW for the diesel plant
     capacity_cost[3, 3, 2] = 10  # £/kW for diesel imports
 
-    # Relate capacity of a node to its activity
+    # Relate new_capacity of a node to its activity
     cap2act[2, 1, 1] = 1
     cap2act[2, 2, 2] = 1
     cap2act[2, 2, 1] = 1
-    cap2act[2, 2, 1] = 8760  # Power plant produce 8760 kWh electricity per year per kW capacity
+    cap2act[2, 2, 1] = 8760  # Power plant produce 8760 kWh electricity per year per kW new_capacity
     cap2act[3, 2, 2] = 1
-    cap2act[3, 3, 2] = 8760  # Diesel resource produce 8760 kWh diesel per year per kW capacity
+    cap2act[3, 3, 2] = 8760  # Diesel resource produce 8760 kWh diesel per year per kW new_capacity
     
     # Transformation of commodities
     transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
@@ -110,8 +113,8 @@ function formulate_gmcnf(; verbose = true)
 
     model = Model(with_optimizer(GLPK.Optimizer))
 
-    capacity = @variable(model,
-                         capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
+    new_capacity = @variable(model,
+                         new_capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
                          lower_bound = 0)
 
     outflow = @variable(model, 
@@ -121,22 +124,34 @@ function formulate_gmcnf(; verbose = true)
                        inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years], 
                        lower_bound = 0)
     
-    @constraint(
+    @variable(
         model,
-        capacity_exp_outflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
-        outflow[i, j, k, y] <= flow_bounds[i, j, k] + capacity[i, j, k, y] * cap2act[i, j, k])
+        total_annual_capacity[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        lower_bound = 0
+    )
 
     @constraint(
         model,
-        capacity_exp_inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
-        inflow[i, j, k, y] <= flow_bounds[i, j, k] + capacity[i, j, k, y] * cap2act[i, j, k])
+        accumulate_capacity[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        total_annual_capacity[i, j, k, y] == sum(new_capacity[i, j, k, z] for z in 1:y)
+    )
+
+    @constraint(
+        model,
+        capacity_exp_outflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        outflow[i, j, k, y] <= flow_bounds[i, j, k] + total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
+
+    @constraint(
+        model,
+        capacity_exp_inflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        inflow[i, j, k, y] <= flow_bounds[i, j, k] + total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
 
     @objective(
         model, 
         Min, 
         sum(outflow_cost[i, j, k] * outflow[i, j, k, y] 
             + inflow_cost[i, j, k] * inflow[i, j, k, y] 
-            + capacity_cost[i, j, k] * capacity[i, j, k, y]
+            + capacity_cost[i, j, k] * new_capacity[i, j, k, y]
             for i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, y=1:num_years)
         )
         
@@ -222,19 +237,16 @@ println("Finished running, objective: £$(JuMP.objective_value(model))")
 
 outflow = model[:outflow]
 inflow = model[:inflow]
-capacity = model[:capacity]
-
-cap_con = model[:capacity_exp_outflow]
+new_capacity = model[:total_annual_capacity]
 
 print_vars(outflow)
 print_vars(inflow)
-print_vars(capacity)
-print_duals(cap_con)
+print_vars(new_capacity)
 
-@test JuMP.value(inflow[2, 1, 1]) ≈ 5000
-@test JuMP.value(outflow[2, 1, 1]) ≈ 5376.344086021505
-@test JuMP.value(outflow[2, 2, 2]) ≈ 5376.344086021505
-@test JuMP.value(outflow[3, 2, 2]) ≈ 16129.032258064515
+@test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
+@test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
+@test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
+@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
 
 @time JuMP.optimize!(model)
 @time JuMP.optimize!(model)
