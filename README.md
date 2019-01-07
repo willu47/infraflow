@@ -8,7 +8,7 @@ flow as found in:
     in Space Logistics and Complex Infrastructure Systems.” 
     Masssachusett Institute of Technology, 2013
     http://hdl.handle.net/1721.1/82470
-    
+
 # Installing
 
 Follow the [instructions](https://julialang.org/downloads/) for your platform 
@@ -20,9 +20,14 @@ You will also need to install the packages
 
 # Running for the first time
 
+
+
 You can then run the model from the command line using
 
-    julia gmcnf.jl
+    julia InfraFlow.jl
 
 
 
+# Building the documentation
+
+    julia --project=. docs/make.jl

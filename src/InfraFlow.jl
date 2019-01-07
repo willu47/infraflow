@@ -54,9 +54,7 @@ function formulate_gmcnf(; verbose = true)
     sink_nodes = view(edges, :, 2)
 
     outflow_edges = make_edge_dict(source_nodes, sink_nodes)
-    @test outflow_edges == Dict{Int8, Array{Int8}}(3=>[2, 3], 2=>[1, 2])
     inflow_edges = make_edge_dict(sink_nodes, source_nodes)
-    @test inflow_edges == Dict{Int8, Array{Int8}}(1=>[2], 2=>[3, 2], 3=>[3])
 
     num_nodes = length(nodes)
     num_edges = length(edges)
@@ -282,3 +280,5 @@ function run()
 end
 
 end
+
+InfraFlow.run()
