@@ -35,6 +35,7 @@ function formulate_gmcnf(; verbose = true)
     nodes = ["household", "power_station", "diesel_resource"]
     edges = [3 2; 2 1; 2 2; 3 3;]
     commodities = ["electricity", "diesel"]
+    discount_rate = 0.10
 
     years = [2018, 2019, 2020, 2025]
      
@@ -145,16 +146,33 @@ function formulate_gmcnf(; verbose = true)
         model,
         capacity_exp_inflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
         inflow[i, j, k, y] <= flow_bounds[i, j, k] + total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
+        
+    function discount_factor(year) 
+        return ((1 + discount_rate) ^ (years[year] - years[1]))
+    end
+
+    discounted_capital_cost = @expression(
+        model,
+        [i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        new_capacity[i, j, k, y] * capacity_cost[i, j, k] / discount_factor(y)
+    )
+
+    discounted_operational_cost = @expression(
+        model,
+        [i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
+        outflow_cost[i, j, k] * outflow[i, j, k, y] 
+        + inflow_cost[i, j, k] * inflow[i, j, k, y] 
+        / discount_factor(y)
+    )
 
     @objective(
         model, 
         Min, 
-        sum(outflow_cost[i, j, k] * outflow[i, j, k, y] 
-            + inflow_cost[i, j, k] * inflow[i, j, k, y] 
-            + capacity_cost[i, j, k] * new_capacity[i, j, k, y]
+        sum(discounted_operational_cost[i, j, k, y]
+            + discounted_capital_cost[i, j, k, y]
             for i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, y=1:num_years)
         )
-        
+
 
     requirements_outflow_const = @expression(
         model,
