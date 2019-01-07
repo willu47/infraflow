@@ -29,17 +29,17 @@ end
 
 
 function formulate_gmcnf(; verbose = true)
-    nodes = ["household", "power_station", "water_plant", "diesel_resource", "water_resource"]
-    edges = [2 3; 2 1; 3 1; 4 2; 5 3; 2 2; 3 3; 4 4; 5 5;]
-    commodities = ["water", "electricity", "diesel"]
+    nodes = ["household", "power_station", "diesel_resource"]
+    edges = [3 2; 2 1; 2 2; 3 3;]
+    commodities = ["electricity", "diesel"]
      
     source_nodes = view(edges, :, 1)
     sink_nodes = view(edges, :, 2)
 
     outflow_edges = make_edge_dict(source_nodes, sink_nodes)
-    @test outflow_edges == Dict{Int8, Array{Int8}}(4=>[2, 4], 2=>[3, 1, 2], 3=>[1, 3], 5=>[3, 5])
+    @test outflow_edges == Dict{Int8, Array{Int8}}(3=>[2, 3], 2=>[1, 2])
     inflow_edges = make_edge_dict(sink_nodes, source_nodes)
-    @test inflow_edges == Dict{Int8, Array{Int8}}(3=>[2, 5, 3], 1=>[2, 3], 2=>[4, 2], 5=>[5], 4=>[4])
+    @test inflow_edges == Dict{Int8, Array{Int8}}(1=>[2], 2=>[3, 2], 3=>[3])
 
     num_nodes = length(nodes)
     num_edges = length(edges)
@@ -61,47 +61,26 @@ function formulate_gmcnf(; verbose = true)
     concurrent_inflow = zeros((num_nodes, num_nodes, num_comm))
     flow_bounds = fill(999, (num_nodes, num_nodes, num_comm))
 
-    demand[4, 3] = 9999  # unlimited diesel resources
-    demand[5, 1] = 9999  # unlimited water resources
-    demand[1, 1] = -3.0  # household requires 3 water
-    demand[1, 2] = -5.0  # household requires 5 electricity
+    demand[3, 2] = 9999  # unlimited diesel resources
+    demand[1, 1] = -5.0  # household requires 5 electricity
 
-    outflow_cost[4, 2, 3] = 0.20  # diesel costs 0.20 £/kWh
-    outflow_cost[2, 1, 2] = 0.01  # electricity distribution costs 0.01 £/kWh
-    outflow_cost[2, 3, 2] = 0.01  # electricity distribution costs 0.01 £/kWh
-    outflow_cost[3, 1, 1] = 0.03  # water production costs 0.03 £/l
-    outflow_cost[5, 3, 1] = 0.0001  # water extraction costs little
+    outflow_cost[3, 2, 2] = 0.20  # diesel costs 0.20 £/kWh
+    outflow_cost[2, 1, 1] = 0.01  # electricity distribution costs 0.01 £/kWh
     
-    transformation[2, 2, 3, 2] = 1.0  # power plant requires diesel to produce electricity
-    # transformation[2, 2, 2, 2] = 1.0  # power plant produces electricity  
-    transformation[3, 3, 1, 1] = 1.0  # water plant produces water
-    transformation[5, 5, 1, 1] = 1.0  # water resource produces water
+    transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
+    transformation[2, 1, 1, 1] = 1.0
+    transformation[3, 2, 2, 2] = 1.0
 
-    # water plant
-    requirements_outflow[3, 3, 2, 1] = 0.2
-    requirements_inflow[3, 3, 2, 1] = 1.0
-    requirements_outflow[3, 3, 1, 1] = 1.0
-    requirements_inflow[3, 3, 1, 1] = 1.0
-    
     # power plant
-    requirements_outflow[2, 2, 3, 2] = 3.0  # power plant requires 3 kWh diesel per 1 kWh electricity
-    requirements_inflow[2, 2, 3, 2] = 1.0  # power plant takes diesel as an input
-    # requirements_outflow[2, 2, 2, 2] = 1.0  # power plant produces electricity as an output
-    requirements_inflow[2, 2, 2, 2] = 1.0  # power plant produces electricity as an output
+    requirements_outflow[2, 2, 2, 1] = 3.0  # power plant requires 3 kWh diesel per 1 kWh electricity
+    requirements_outflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
+    requirements_inflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
     
-    requirements_outflow[2, 1, 2, 2] = 1.0  # power plant sends electricity to household
-    requirements_outflow[2, 3, 2, 2] = 1.0  # power plant sends electricity to water plant
+    requirements_outflow[2, 1, 1, 1] = 1.0  # power plant sends electricity to household
+    requirements_inflow[2, 1, 1, 1] = 1.0
 
-    requirements_outflow[4, 2, 3, 3] = 1.0  # diesel is produced from diesel resource
-    requirements_inflow[4, 2, 3, 3] = 1.0  # electricity is produced from diesel
-    requirements_inflow[2, 3, 2, 1] = 1.0  # water plant requires 0.2 electricity to produce water
-    requirements_outflow[3, 1, 1, 1] = 1.0  # water plant produces water
-    requirements_inflow[3, 1, 1, 1] = 1.0
-    requirements_inflow[2, 1, 2, 2] = 1.0
-    requirements_outflow[5, 3, 1, 1] = 1.0  # water is produced from the water resource
-    requirements_inflow[5, 3, 1, 1] = 1.0  # water is consumed by the water plant
-
-
+    requirements_outflow[3, 2, 2, 2] = 1.0  # diesel is produced from diesel resource
+    requirements_inflow[3, 2, 2, 2] = 1.0
 
     model = Model(with_optimizer(GLPK.Optimizer))
 
@@ -204,10 +183,9 @@ for var in outflow
     end
 end
 
-@test JuMP.value(outflow[3, 1, 1]) == 3.0
-@test JuMP.value(outflow[2, 1, 2]) == 5.0
-@test JuMP.value(outflow[4, 2, 3]) == 15.0
-@test JuMP.value(outflow[2, 3, 2]) == 3.0 * 0.2
+@test JuMP.value(outflow[2, 1, 1]) == 5.0
+@test JuMP.value(outflow[2, 2, 2]) == 15.0
+@test JuMP.value(outflow[3, 2, 2]) == 15.0
 
 # @time gmcnf(verbose = true)
 # @time gmcnf(verbose = true)
