@@ -1,7 +1,7 @@
 
 module Test_InfraFlow
 
-using Test, InfraFlow, YAML
+using Test, InfraFlow, YAML, JuMP
 
 @testset "test_make_edges_dict" begin
 
@@ -117,6 +117,21 @@ end
     @test data["requirements_inflow"] ≈ requirements_inflow
     @test data["requirements_outflow"] ≈ requirements_outflow
 
+end
+
+@testset "run_model" begin
+
+data = InfraFlow.get_data("./test_data.yml")
+model = InfraFlow.formulate_gmcnf(data, verbose = false)
+JuMP.optimize!(model)
+
+outflow = model[:outflow]
+inflow = model[:inflow]
+
+@test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
+@test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
+@test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
+@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
 
 end
 

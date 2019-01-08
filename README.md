@@ -20,7 +20,7 @@ You will also need to install the packages
 
 ## Running for the first time
 
-You can then run the model from the command line using
+You can then run the model from the command line using.
 
     julia InfraFlow.jl
 

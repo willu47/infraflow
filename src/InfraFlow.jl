@@ -306,7 +306,7 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
             )
                 
         else
-            println("No outflow edge found for $(i)")
+            println("No outflow edge found for $(nodes[i])")
             0
         end
     )
@@ -321,7 +321,7 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
             )
 
         else
-            println("No inflow edge found for $(i)")
+            println("No inflow edge found for $(nodes[i])")
             0
         end
     )
@@ -357,37 +357,55 @@ function print_duals(con_object)
     end
 end
 
+function print_constraint(con_object)
+    for con in con_object
+        println("$(con)")
+    end
+end
+
 function run(file_path::String)
 
     model_data = get_data(file_path)
 
     @time model = formulate_gmcnf(model_data, verbose = true)
 
-    # println(model[:mass_balance])
-    # println(model[:flow_transformation])
-
     println("Compiled model, now running")
     @time JuMP.optimize!(model)
     println("Finished running, objective: £$(JuMP.objective_value(model))")
 
-    @test JuMP.termination_status(model) == MOI.OPTIMAL
-    @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
-    # @test JuMP.objective_value(model) == 225700.0
+    status = JuMP.termination_status(model) == MOI.OPTIMAL
+    feasible = JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 
-    outflow = model[:outflow]
-    inflow = model[:inflow]
-    total_capacity = model[:total_annual_capacity]
-    new_capacity = model[:new_capacity]
+    if status
+        println("\nSolution optimal\n")
+        outflow = model[:outflow]
+        inflow = model[:inflow]
+        total_capacity = model[:total_annual_capacity]
+        new_capacity = model[:new_capacity]
 
-    print_vars(outflow)
-    print_vars(inflow)
-    print_vars(total_capacity)
-    print_vars(new_capacity)
+        println("i,j=> $(model_data["nodes"])")
+        println("k=> $(model_data["commodities"])")
+        println("y=> $(model_data["years"])")    
+        println("outflow[i, j, k, y]")
+        print_vars(outflow)
+        println("inflow[i, j, k, y]")
+        print_vars(inflow)
+        println("total_capacity[i, j, k, y]")
+        print_vars(total_capacity)
+        println("new_capacity[i, j, k, y]")
+        print_vars(new_capacity)
 
-    @test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
-    @test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
-    @test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
-    @test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
+    else
+        println("\nSolution not optimal\n")
+        println("i,j=> $(model_data["nodes"])")
+        println("k=> $(model_data["commodities"])")
+        println("y=> $(model_data["years"])")
+        println("mass_balance[i, k, y]")
+        print_constraint(model[:mass_balance])
+        println("flow_transformation[i, j, k, y]")
+        print_constraint(model[:flow_transformation])
+
+    end
 
 end
 

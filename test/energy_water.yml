@@ -1,0 +1,131 @@
+commodities:
+- electricity
+- diesel
+- raw_water
+- fresh_water
+discount_rate: 0.1
+years:
+- 2018
+nodes: 
+- name: household
+  demand:
+    electricity: 
+      2018: -5000
+      # 2019: -6000
+      # 2020: -7000
+      # 2025: -8000
+    fresh_water:
+      2018: -10000
+      # 2019: -16000
+      # 2020: -17000
+      # 2025: -18000
+  input: 
+  - electricity
+  - fresh_water
+- name: power_station
+  investment_cost: 800
+  cap2act: 8760
+  residual_capacity:
+    2018: 0.7
+    # 2019: 0.7
+    # 2020: 0.7
+    # 2025: 0.0
+  requirements:
+  - name: diesel
+    value: 3.0
+  output: electricity
+  input: diesel
+- name: water_plant
+  investment_cost: 1000000
+  cap2act: 1000000
+  residual_capacity:
+    2018: 1.0
+    # 2019: 1.0
+    # 2020: 1.0
+    # 2025: 1.0
+  requirements:
+  - name: electricity
+    value: 0.2
+  output: fresh_water
+  input: raw_water
+- name: diesel_resource
+  demand: 
+    diesel:
+      2018: 999999
+      # 2019: 999999
+      # 2020: 999999
+      # 2025: 999999
+  investment_cost: 10
+  cap2act: 8760
+  output: diesel
+- name: water_resource
+  demand: 
+    raw_water:
+      2018: 999999
+      # 2019: 999999
+      # 2020: 999999
+      # 2025: 999999
+  investment_cost: 1
+  cap2act: 1
+  output: raw_water
+edges:
+- source: water_resource
+  sink: water_plant
+  flow:
+  - name: raw_water
+  operational_cost: 
+    raw_water: 0.01
+  losses: 
+    raw_water: 0.05
+  capacity:
+    raw_water: 999999
+  cap2act: 
+    raw_water: 1
+- source: water_plant
+  sink: household
+  flow:
+  - name: fresh_water
+  operational_cost: 
+    fresh_water: 0.01
+  losses: 
+    fresh_water: 0.05
+  capacity:
+    fresh_water: 999999
+  cap2act: 
+    fresh_water: 1
+- source: diesel_resource
+  sink: power_station
+  flow:
+  - name: diesel
+  operational_cost: 
+    diesel: 0.20
+  losses: 
+    diesel: 0.0
+  capacity:
+    diesel: 99999
+  cap2act: 
+    diesel: 1
+- source: power_station
+  sink: household
+  flow:
+  - name: electricity
+  operational_cost: 
+    electricity: 0.01
+  losses: 
+    electricity: 0.07
+  capacity:
+    electricity: 99999
+  cap2act: 
+    electricity: 1
+- source: power_station
+  sink: water_plant
+  flow:
+  - name: electricity
+  operational_cost: 
+    electricity: 0.01
+  losses: 
+    electricity: 0.03
+  capacity:
+    electricity: 99999
+  cap2act: 
+    electricity: 1

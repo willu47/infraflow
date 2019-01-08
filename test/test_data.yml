@@ -15,7 +15,8 @@ nodes:
       2019: -6000
       2020: -7000
       2025: -8000
-  input: electricity
+  input: 
+  - electricity
 - name: power_station
   investment_cost: 800
   cap2act: 8760
