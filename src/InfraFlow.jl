@@ -67,9 +67,7 @@ function get_data(file_path::AbstractString)
         sink = nodes[edge["sink"]]
         push!(edges, source, sink)
 
-        @show edge["flow"]
         for flow in edge["flow"]
-            @show flow
             comm_idx = commodities[flow["name"]]
             requirements_inflow[source, sink, comm_idx, comm_idx] = 1
             requirements_outflow[source, sink, comm_idx, comm_idx] = 1
@@ -200,13 +198,12 @@ end
 ``\\sum_{ijky} c_{ijky}x_{ijky}`` 
 
 """
-function formulate_gmcnf(; verbose = true)
-    nodes = ["household", "power_station", "diesel_resource"]
-    edges = [3 2; 2 1; 2 2;]
-    commodities = ["electricity", "diesel"]
-    discount_rate = 0.10
-
-    years = [2018, 2019, 2020, 2025]
+function formulate_gmcnf(model_data::Dict; verbose = true)
+    nodes = model_data["nodes"]
+    edges = model_data["edges"]
+    commodities = model_data["commodities"]
+    discount_rate = model_data["discount_rate"]
+    years = model_data["years"]
      
     source_nodes = view(edges, :, 1)
     sink_nodes = view(edges, :, 2)
@@ -220,64 +217,23 @@ function formulate_gmcnf(; verbose = true)
     num_years = length(years)
     
     # demand at node by commodity
-    demand = zeros((num_nodes, num_comm, num_years))
+    demand = model_data["demand"]
 
-    capacity_cost = zeros((num_nodes, num_nodes, num_comm))
-    cap2act = zeros((num_nodes, num_nodes, num_comm))
+    capacity_cost = model_data["capacity_cost"]
+    cap2act = model_data["cap2act"]
 
-    inflow_cost = zeros((num_nodes, num_nodes, num_comm))
-    outflow_cost = zeros((num_nodes, num_nodes, num_comm))
+    inflow_cost = model_data["inflow_cost"]
+    outflow_cost = model_data["outflow_cost"]
     
     # describe the commodity requirements for an in- or out-flow
-    requirements_outflow = zeros((num_nodes, num_nodes, num_comm, num_comm))
-    requirements_inflow = zeros((num_nodes, num_nodes, num_comm, num_comm))
+    requirements_outflow = model_data["requirements_outflow"]
+    requirements_inflow = model_data["requirements_inflow"]
     
     # describe the flow gain/loss or transformation between commodities
-    transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
+    transformation = model_data["transformation"]
     
     # upper bound on operational decision variables (new_capacity)
-    flow_bounds = zeros((num_nodes, num_nodes, num_comm, num_years))
-
-    # Demands and Resources
-    demand[3, 2, :] .= 999999.0  # unlimited diesel resources
-    demand[1, 1, 1] = -5000.0  # household requires 5 MWh electricity
-    demand[1, 1, 2] = -6000.0  # household requires 6 MWh electricity
-    demand[1, 1, 3] = -7000.0  # household requires 7 MWh electricity
-    demand[1, 1, 4] = -8000.0  # household requires 8 MWh electricity
-
-    # Operational costs
-    outflow_cost[3, 2, 2] = 0.20  # diesel costs £0.20/kWh
-    outflow_cost[2, 1, 1] = 0.01  # electricity distribution costs £0.01/kWh
-
-    # Investment costs
-    capacity_cost[2, 2, 1] = 800  # £/kW for the diesel plant
-    capacity_cost[3, 3, 2] = 10  # £/kW for diesel imports
-
-    # Relate new_capacity of a node to its activity
-    cap2act[2, 1, 1] = 1
-    cap2act[2, 2, 2] = 1
-    cap2act[2, 2, 1] = 1
-    cap2act[2, 2, 1] = 8760  # Power plant produce 8760 kWh electricity per year per kW new_capacity
-    cap2act[3, 2, 2] = 1
-    cap2act[3, 3, 2] = 8760  # Diesel resource produce 8760 kWh diesel per year per kW new_capacity
-    
-    # Transformation of commodities
-    transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
-    transformation[2, 1, 1, 1] = 0.93  # 7% losses in distribution of electricity
-    transformation[3, 2, 2, 2] = 1.0  # no losses in distribution of diesel
-
-    # Power plant
-    requirements_outflow[2, 2, 2, 1] = 3.0  # power plant requires 3 kWh diesel per 1 kWh electricity
-    requirements_outflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
-    requirements_inflow[2, 2, 1, 1] = 1.0  # power plant produces electricity as an output
-    
-    # Distribution of electricity
-    requirements_outflow[2, 1, 1, 1] = 1.0  # Send electricity to household from power plant
-    requirements_inflow[2, 1, 1, 1] = 1.0
-
-    # Distribution of diesel
-    requirements_outflow[3, 2, 2, 2] = 1.0  # Send diesel to power plant from diesel resource
-    requirements_inflow[3, 2, 2, 2] = 1.0
+    flow_bounds = model_data["flow_bounds"]
 
     model = Model(with_optimizer(GLPK.Optimizer))
 
@@ -402,9 +358,11 @@ function print_duals(con_object)
     end
 end
 
-function run()
+function run(file_path::String)
 
-    @time model = formulate_gmcnf(verbose = true)
+    model_data = get_data(file_path)
+
+    @time model = formulate_gmcnf(model_data, verbose = true)
 
     # println(model[:mass_balance])
     # println(model[:flow_transformation])
@@ -432,6 +390,7 @@ function run()
 
 end
 
-# run()
+run(ARGS[1])
+
 
 end
