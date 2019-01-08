@@ -19,13 +19,16 @@ nodes:
 - name: power_station
   investment_cost: 800
   cap2act: 8760
+  residual_capacity:
+    2018: 0.7
+    2019: 0.7
+    2020: 0.7
+    2025: 0.0
   requirements:
   - name: diesel
     value: 3.0
-  output:
-  - electricity
-  input:
-  - diesel
+  output: electricity
+  input: diesel
 - name: diesel_resource
   demand: 
     diesel:
@@ -35,14 +38,29 @@ nodes:
       2025: 999999
   investment_cost: 10
   cap2act: 8760
-  output:
-  - diesel
+  output: diesel
 edges:
 - source: diesel_resource
   sink: power_station
-  operational_cost: 0.20
-  losses: 0.0
+  flow:
+  - name: diesel
+  operational_cost: 
+    diesel: 0.20
+  losses: 
+    diesel: 0.0
+  capacity:
+    diesel: 99999
+  cap2act: 
+    diesel: 1
 - source: power_station
   sink: household
-  operational_cost: 0.01
-  losses: 0.07
+  flow:
+  - name: electricity
+  operational_cost: 
+    electricity: 0.01
+  losses: 
+    electricity: 0.07
+  capacity:
+    electricity: 99999
+  cap2act: 
+    electricity: 1

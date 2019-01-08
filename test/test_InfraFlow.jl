@@ -80,23 +80,26 @@ end
     @test data["outflow_cost"] == outflow_cost
     
     # upper bound on operational decision variables (new_capacity)
-    flow_bounds = fill(0, (num_nodes, num_nodes, num_comm))
+    flow_bounds = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
 
+    flow_bounds[2, 2, 1, 1:3] .= 0.7
+    flow_bounds[2, 2, 1, 4] = 0.0
+    
     @test data["flow_bounds"] == flow_bounds
 
     # describe the flow gain/loss or transformation between commodities
-    transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
+    transformation = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
     
     # Transformation of commodities
     transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
     transformation[2, 1, 1, 1] = 0.93  # 7% losses in distribution of electricity
     transformation[3, 2, 2, 2] = 1.0  # no losses in distribution of diesel
 
-    @test data["transformation"] == transformation
+    @test data["transformation"] ≈ transformation
 
     # describe the commodity requirements for an in- or out-flow
-    requirements_outflow = zeros((num_nodes, num_nodes, num_comm, num_comm))
-    requirements_inflow = zeros((num_nodes, num_nodes, num_comm, num_comm))
+    requirements_outflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
+    requirements_inflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
     
     # Power plant
     requirements_outflow[2, 2, 2, 1] = 3.0  # power plant requires 3 kWh diesel per 1 kWh electricity
@@ -111,8 +114,8 @@ end
     requirements_outflow[3, 2, 2, 2] = 1.0  # Send diesel to power plant from diesel resource
     requirements_inflow[3, 2, 2, 2] = 1.0
 
-    @test data["requirements_inflow"] == requirements_inflow
-    @test data["requirements_outflow"] == requirements_outflow
+    @test data["requirements_inflow"] ≈ requirements_inflow
+    @test data["requirements_outflow"] ≈ requirements_outflow
 
 
 end

@@ -16,10 +16,23 @@ in Space Logistics and Complex Infrastructure Systems.”
 Masssachusett Institute of Technology, 2013.
 """
 
+"""
+    get_data(file_path)
+
+Load in model data from a YAML file
+"""
 function get_data(file_path::AbstractString)
+
     data = YAML.load(open(file_path))
 
     model_data = Dict()
+
+    model_data["years"] = data["years"]
+    years = Dict{Int,Int}([data["years"][i]=>i for i in eachindex(data["years"])])
+    model_data["commodities"] = data["commodities"]
+    commodities = Dict{String,Int}([data["commodities"][i]=>i for i in eachindex(data["commodities"])])
+
+    model_data["discount_rate"] = data["discount_rate"]
 
     nodes = Dict{String,Int}()
     node_names = []
@@ -31,18 +44,58 @@ function get_data(file_path::AbstractString)
         if haskey(node, "requirements")
             push!(self_loops, index)
         end
-    end
 
+    end
     model_data["nodes"] = node_names
-    model_data["years"] = data["years"]
-    model_data["commodities"] = data["commodities"]
-    model_data["discount_rate"] = data["discount_rate"]
+
+    num_nodes = length(node_names)
+    num_comm = length(commodities)
+    num_years = length(years)
+    
+    cap2act = zeros(Float64, (num_nodes, num_nodes, num_comm))
+    outflow_cost = zeros(Float64, (num_nodes, num_nodes, num_comm))
+    inflow_cost = zeros(Float64,(num_nodes, num_nodes, num_comm))
+    flow_bounds = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
+    transformation = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
+
+    requirements_outflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
+    requirements_inflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
 
     edges = []
     for edge in data["edges"]
         source = nodes[edge["source"]]
         sink = nodes[edge["sink"]]
         push!(edges, source, sink)
+
+        @show edge["flow"]
+        for flow in edge["flow"]
+            @show flow
+            comm_idx = commodities[flow["name"]]
+            requirements_inflow[source, sink, comm_idx, comm_idx] = 1
+            requirements_outflow[source, sink, comm_idx, comm_idx] = 1
+        end
+
+        if haskey(edge, "cap2act")
+            for (comm, value) in edge["cap2act"]
+                comm_idx = commodities[comm]
+                cap2act[source, sink, comm_idx] = value
+            end
+        end
+
+        if haskey(edge, "operational_cost")
+            for (comm, value) in edge["operational_cost"]
+                comm_idx = commodities[comm]
+                outflow_cost[source, sink, comm_idx] = value
+            end
+        end
+
+        if haskey(edge, "losses")
+            for (comm, value) in edge["losses"]
+                comm_idx = commodities[comm]
+                transformation[source, sink, comm_idx, comm_idx] = 1.0 - value
+            end
+        end
+
     end
 
     for loop in self_loops
@@ -51,6 +104,71 @@ function get_data(file_path::AbstractString)
 
     edges = transpose(reshape(edges, 2, :))
     model_data["edges"] = edges
+
+    demand = zeros((num_nodes, num_comm, num_years))
+    capacity_cost = zeros((num_nodes, num_nodes, num_comm))
+
+    for index in eachindex(data["nodes"])
+        node = data["nodes"][index]
+        source = node["name"]
+        node_idx = nodes[source]
+        if haskey(node, "demand")
+            for (commodity, yearly_data) in node["demand"]
+                for (year, value) in yearly_data
+                    node_idx = nodes[source]
+                    comm_index = commodities[commodity]
+                    year_idx = years[year]
+                    demand[node_idx, comm_index, year_idx] = value
+                end
+            end
+        end
+
+        if haskey(node, "investment_cost")
+            output_commodity = node["output"]
+            output_comm_idx = commodities[output_commodity]
+            capacity_cost[node_idx, node_idx, output_comm_idx] = node["investment_cost"]
+        end
+    
+        if haskey(node, "cap2act")
+            output_commodity = node["output"]
+            output_comm_idx = commodities[output_commodity]
+            cap2act[node_idx, node_idx, output_comm_idx] = node["cap2act"]
+        end
+
+        if haskey(node, "requirements")
+            for requirement in node["requirements"]
+                comm = node["output"]
+                comm_idx = commodities[comm]
+                r_comm = requirement["name"]
+                r_comm_idx = commodities[r_comm]            
+                cap2act[node_idx, node_idx, r_comm_idx] = 1
+                transformation[node_idx, node_idx, r_comm_idx, comm_idx] = 1
+                requirements_outflow[node_idx, node_idx, r_comm_idx, comm_idx] = requirement["value"]
+                requirements_inflow[node_idx, node_idx, comm_idx, comm_idx] = 1
+                requirements_outflow[node_idx, node_idx, comm_idx, comm_idx] = 1
+            end
+        end
+
+        if haskey(node, "residual_capacity")
+            output_commodity = node["output"]
+            output_comm_idx = commodities[output_commodity]
+            for (year, value) in node["residual_capacity"]
+                year_idx = years[year]
+                flow_bounds[node_idx, node_idx, output_comm_idx, year_idx] = value
+            end
+        end
+
+    end
+
+    model_data["demand"] = demand
+    model_data["capacity_cost"] = capacity_cost
+    model_data["cap2act"] = cap2act
+    model_data["outflow_cost"] = outflow_cost
+    model_data["inflow_cost"] = inflow_cost
+    model_data["flow_bounds"] = flow_bounds
+    model_data["transformation"] = transformation
+    model_data["requirements_inflow"] = requirements_inflow
+    model_data["requirements_outflow"] = requirements_outflow
 
     return model_data
 end
@@ -118,7 +236,7 @@ function formulate_gmcnf(; verbose = true)
     transformation = zeros((num_nodes, num_nodes, num_comm, num_comm))
     
     # upper bound on operational decision variables (new_capacity)
-    flow_bounds = fill(0, (num_nodes, num_nodes, num_comm))
+    flow_bounds = zeros((num_nodes, num_nodes, num_comm, num_years))
 
     # Demands and Resources
     demand[3, 2, :] .= 999999.0  # unlimited diesel resources
@@ -189,12 +307,12 @@ function formulate_gmcnf(; verbose = true)
     @constraint(
         model,
         capacity_exp_outflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        outflow[i, j, k, y] <= flow_bounds[i, j, k] + total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
+        outflow[i, j, k, y] <= (flow_bounds[i, j, k, y] + total_annual_capacity[i, j, k, y]) * cap2act[i, j, k])
 
     @constraint(
         model,
         capacity_exp_inflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        inflow[i, j, k, y] <= flow_bounds[i, j, k] + total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
+        inflow[i, j, k, y] <= (flow_bounds[i, j, k, y] + total_annual_capacity[i, j, k, y]) * cap2act[i, j, k])
         
     function discount_factor(year) 
         return ((1 + discount_rate) ^ (years[year] - years[1]))
