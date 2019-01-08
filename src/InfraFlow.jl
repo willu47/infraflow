@@ -1,6 +1,6 @@
 module InfraFlow
 
-using JuMP, GLPK, Test
+using JuMP, GLPK, Test, YAML
 const MOI = JuMP.MathOptInterface
 
 """
@@ -15,6 +15,46 @@ Ishimatsu, Takuto. “Generalized Multi-Commodity Network Flows : Case Studies
 in Space Logistics and Complex Infrastructure Systems.” 
 Masssachusett Institute of Technology, 2013.
 """
+
+function get_data(file_path::AbstractString)
+    data = YAML.load(open(file_path))
+
+    model_data = Dict()
+
+    nodes = Dict{String,Int}()
+    node_names = []
+    self_loops = []
+    for index in eachindex(data["nodes"])
+        node = data["nodes"][index]
+        nodes[node["name"]] = index
+        push!(node_names, node["name"])
+        if haskey(node, "requirements")
+            push!(self_loops, index)
+        end
+    end
+
+    model_data["nodes"] = node_names
+    model_data["years"] = data["years"]
+    model_data["commodities"] = data["commodities"]
+    model_data["discount_rate"] = data["discount_rate"]
+
+    edges = []
+    for edge in data["edges"]
+        source = nodes[edge["source"]]
+        sink = nodes[edge["sink"]]
+        push!(edges, source, sink)
+    end
+
+    for loop in self_loops
+        push!(edges, loop, loop)
+    end
+
+    edges = transpose(reshape(edges, 2, :))
+    model_data["edges"] = edges
+
+    return model_data
+end
+
 
 """
     make_edge_dict(edge_nodes, other_nodes)
@@ -44,7 +84,7 @@ end
 """
 function formulate_gmcnf(; verbose = true)
     nodes = ["household", "power_station", "diesel_resource"]
-    edges = [3 2; 2 1; 2 2; 3 3;]
+    edges = [3 2; 2 1; 2 2;]
     commodities = ["electricity", "diesel"]
     discount_rate = 0.10
 
@@ -228,13 +268,6 @@ function formulate_gmcnf(; verbose = true)
     return model
 end
 
-function populate_gmncf(model::JuMP.Model)
-
-    println(model[:mass_balance])
-    println(model[:flow_transformation])
-
-end
-
 function print_vars(var_object)
     for var in var_object
         if JuMP.value(var) != 0.0
@@ -254,7 +287,9 @@ end
 function run()
 
     @time model = formulate_gmcnf(verbose = true)
-    @time populate_gmncf(model)
+
+    # println(model[:mass_balance])
+    # println(model[:flow_transformation])
 
     println("Compiled model, now running")
     @time JuMP.optimize!(model)
@@ -279,6 +314,6 @@ function run()
 
 end
 
-end
+# run()
 
-InfraFlow.run()
+end

@@ -1,0 +1,48 @@
+commodities:
+- electricity
+- diesel
+discount_rate: 0.1
+years:
+- 2018
+- 2019
+- 2020
+- 2025
+nodes: 
+- name: household
+  demand:
+    electricity: 
+      2018: -5000
+      2019: -6000
+      2020: -7000
+      2025: -8000
+  input: electricity
+- name: power_station
+  investment_cost: 800
+  cap2act: 8760
+  requirements:
+  - name: diesel
+    value: 3.0
+  output:
+  - electricity
+  input:
+  - diesel
+- name: diesel_resource
+  demand: 
+    diesel:
+      2018: 999999
+      2019: 999999
+      2020: 999999
+      2025: 999999
+  investment_cost: 10
+  cap2act: 8760
+  output:
+  - diesel
+edges:
+- source: diesel_resource
+  sink: power_station
+  operational_cost: 0.20
+  losses: 0.0
+- source: power_station
+  sink: household
+  operational_cost: 0.01
+  losses: 0.07
