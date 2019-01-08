@@ -82,8 +82,8 @@ end
     # upper bound on operational decision variables (new_capacity)
     flow_bounds = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
 
-    flow_bounds[2, 2, 2, 1:3] .= 0.7
-    flow_bounds[2, 2, 2, 4] = 0.0
+    flow_bounds[2, 2, 1, 1:3] .= 0.7
+    flow_bounds[2, 2, 1, 4] = 0.0
     
     @test data["flow_bounds"] == flow_bounds
 

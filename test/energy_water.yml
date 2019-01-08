@@ -6,19 +6,22 @@ commodities:
 discount_rate: 0.1
 years:
 - 2018
+- 2019
+- 2020
+- 2025
 nodes: 
 - name: household
   demand:
     electricity: 
       2018: -5000
-      # 2019: -6000
-      # 2020: -7000
-      # 2025: -8000
+      2019: -6000
+      2020: -7000
+      2025: -8000
     fresh_water:
       2018: -10000
-      # 2019: -16000
-      # 2020: -17000
-      # 2025: -18000
+      2019: -16000
+      2020: -17000
+      2025: -18000
   input: 
   - electricity
   - fresh_water
@@ -26,10 +29,10 @@ nodes:
   investment_cost: 800
   cap2act: 8760
   residual_capacity:
-    2018: 0.7
-    # 2019: 0.7
-    # 2020: 0.7
-    # 2025: 0.0
+    2018: 1.0
+    2019: 1.0
+    2020: 1.0
+    2025: 0.0
   requirements:
   - name: diesel
     value: 3.0
@@ -40,9 +43,9 @@ nodes:
   cap2act: 1000000
   residual_capacity:
     2018: 1.0
-    # 2019: 1.0
-    # 2020: 1.0
-    # 2025: 1.0
+    2019: 1.0
+    2020: 1.0
+    2025: 1.0
   requirements:
   - name: electricity
     value: 0.2
@@ -52,9 +55,9 @@ nodes:
   demand: 
     diesel:
       2018: 999999
-      # 2019: 999999
-      # 2020: 999999
-      # 2025: 999999
+      2019: 999999
+      2020: 999999
+      2025: 999999
   investment_cost: 10
   cap2act: 8760
   output: diesel
@@ -62,9 +65,9 @@ nodes:
   demand: 
     raw_water:
       2018: 999999
-      # 2019: 999999
-      # 2020: 999999
-      # 2025: 999999
+      2019: 999999
+      2020: 999999
+      2025: 999999
   investment_cost: 1
   cap2act: 1
   output: raw_water

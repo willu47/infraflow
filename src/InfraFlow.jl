@@ -1,6 +1,6 @@
 module InfraFlow
 
-using JuMP, GLPK, Test, YAML
+using JuMP, GLPK, Test, YAML, Logging
 const MOI = JuMP.MathOptInterface
 
 """
@@ -147,7 +147,7 @@ function get_data(file_path::AbstractString)
                 if haskey(node, "residual_capacity")
                     for (year, value) in node["residual_capacity"]
                         year_idx = years[year]
-                        flow_bounds[node_idx, node_idx, r_comm_idx, year_idx] = value
+                        flow_bounds[node_idx, node_idx, comm_idx, year_idx] = value
                     end
                 end
             end
@@ -256,18 +256,18 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
     @constraint(
         model,
         accumulate_capacity[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        total_annual_capacity[i, j, k, y] == sum(new_capacity[i, j, k, z] for z in 1:y)
+        total_annual_capacity[i, j, k, y] == flow_bounds[i, j, k, y] + sum(new_capacity[i, j, k, z] for z in 1:y)
     )
 
     @constraint(
         model,
         capacity_exp_outflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        outflow[i, j, k, y] <= (flow_bounds[i, j, k, y] + total_annual_capacity[i, j, k, y]) * cap2act[i, j, k])
+        outflow[i, j, k, y] <= total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
 
     @constraint(
         model,
         capacity_exp_inflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        inflow[i, j, k, y] <= (flow_bounds[i, j, k, y] + total_annual_capacity[i, j, k, y]) * cap2act[i, j, k])
+        inflow[i, j, k, y] <= total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
         
     function discount_factor(year) 
         return ((1 + discount_rate) ^ (years[year] - years[1]))
@@ -306,7 +306,7 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
             )
                 
         else
-            println("No outflow edge found for $(nodes[i])")
+            @info "No outflow edge found for ($(nodes[i]), $(commodities[k]), $(years[y]))"
             0
         end
     )
@@ -321,7 +321,7 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
             )
 
         else
-            println("No inflow edge found for $(nodes[i])")
+            @info "No inflow edge found for ($(nodes[i]), $(commodities[k]), $(years[y]))"
             0
         end
     )
