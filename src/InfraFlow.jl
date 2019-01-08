@@ -144,17 +144,15 @@ function get_data(file_path::AbstractString)
                 requirements_outflow[node_idx, node_idx, r_comm_idx, comm_idx] = requirement["value"]
                 requirements_inflow[node_idx, node_idx, comm_idx, comm_idx] = 1
                 requirements_outflow[node_idx, node_idx, comm_idx, comm_idx] = 1
+                if haskey(node, "residual_capacity")
+                    for (year, value) in node["residual_capacity"]
+                        year_idx = years[year]
+                        flow_bounds[node_idx, node_idx, r_comm_idx, year_idx] = value
+                    end
+                end
             end
         end
 
-        if haskey(node, "residual_capacity")
-            output_commodity = node["output"]
-            output_comm_idx = commodities[output_commodity]
-            for (year, value) in node["residual_capacity"]
-                year_idx = years[year]
-                flow_bounds[node_idx, node_idx, output_comm_idx, year_idx] = value
-            end
-        end
 
     end
 
@@ -199,6 +197,7 @@ end
 
 """
 function formulate_gmcnf(model_data::Dict; verbose = true)
+    
     nodes = model_data["nodes"]
     edges = model_data["edges"]
     commodities = model_data["commodities"]
@@ -377,10 +376,12 @@ function run(file_path::String)
 
     outflow = model[:outflow]
     inflow = model[:inflow]
-    new_capacity = model[:total_annual_capacity]
+    total_capacity = model[:total_annual_capacity]
+    new_capacity = model[:new_capacity]
 
     print_vars(outflow)
     print_vars(inflow)
+    print_vars(total_capacity)
     print_vars(new_capacity)
 
     @test JuMP.value(inflow[2, 1, 1, 1]) ≈ 5000
@@ -390,7 +391,8 @@ function run(file_path::String)
 
 end
 
-run(ARGS[1])
-
+if length(ARGS) > 0
+    run(ARGS[1])
+end
 
 end
