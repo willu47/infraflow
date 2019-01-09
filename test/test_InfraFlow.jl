@@ -91,7 +91,7 @@ end
     transformation = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
     
     # Transformation of commodities
-    transformation[2, 2, 2, 1] = 1.0  # power plant requires diesel to produce electricity
+    transformation[2, 2, 1, 2] = 1.0  # power plant requires diesel to produce electricity
     transformation[2, 1, 1, 1] = 0.93  # 7% losses in distribution of electricity
     transformation[3, 2, 2, 2] = 1.0  # no losses in distribution of diesel
 
@@ -159,10 +159,14 @@ JuMP.optimize!(model)
 outflow = model[:outflow]
 inflow = model[:inflow]
 
+# demand node consumes 1000 kWh
 @test JuMP.value(inflow[2, 1, 1, 1]) ≈ 1000
-@test JuMP.value(outflow[2, 3, 1, 1]) ≈ 2.803536769463015
-@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 2.156566745740781
-@test JuMP.value(outflow[4, 2, 3, 1]) ≈ 3000
+# water plant consumes kWh electricity
+@test JuMP.value(inflow[2, 3, 1, 1]) ≈ 2.951526847542287
+# electricity plant consumes 0.002 * 1055 kWh = 2.11 m^3 water
+@test JuMP.value(inflow[3, 2, 2, 1]) ≈ 2.111476898626405
+# diesel resource = 3 * 1055 kWh
+@test JuMP.value(outflow[4, 2, 3, 1]) ≈ 3167.2153479396075
 
 end
 

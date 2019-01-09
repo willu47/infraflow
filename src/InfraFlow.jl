@@ -25,7 +25,7 @@ function get_data(file_path::AbstractString)
 
     data = YAML.load(open(file_path))
 
-    model_data = Dict()
+    model_data = Dict{String,Any}()
 
     model_data["years"] = data["years"]
     years = Dict{Int,Int}([data["years"][i]=>i for i in eachindex(data["years"])])
@@ -90,7 +90,7 @@ function get_data(file_path::AbstractString)
         if haskey(edge, "losses")
             for (comm, value) in edge["losses"]
                 comm_idx = commodities[comm]
-                transformation[source, sink, comm_idx, comm_idx] = 1.0 - value
+                transformation[source, sink, comm_idx, comm_idx] = (1.0 - value)
             end
         end
 
@@ -140,7 +140,7 @@ function get_data(file_path::AbstractString)
                 r_comm = requirement["name"]
                 r_comm_idx = commodities[r_comm]            
                 cap2act[node_idx, node_idx, r_comm_idx] = 1
-                transformation[node_idx, node_idx, r_comm_idx, comm_idx] = 1
+                transformation[node_idx, node_idx, comm_idx, r_comm_idx] = 1
                 requirements_outflow[node_idx, node_idx, r_comm_idx, comm_idx] = requirement["value"]
                 requirements_inflow[node_idx, node_idx, comm_idx, comm_idx] = 1
                 requirements_outflow[node_idx, node_idx, comm_idx, comm_idx] = 1
@@ -197,7 +197,7 @@ end
 ``\\sum_{ijky} c_{ijky}x_{ijky}`` 
 
 """
-function formulate_gmcnf(model_data::Dict; verbose = true)
+function formulate_gmcnf(model_data::Dict{String,Any}; verbose = true)
     
     nodes = model_data["nodes"]
     edges = model_data["edges"]
@@ -270,7 +270,7 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
         capacity_exp_inflow[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
         inflow[i, j, k, y] <= total_annual_capacity[i, j, k, y] * cap2act[i, j, k])
         
-    function discount_factor(year) 
+    function discount_factor(year::Int)
         return ((1 + discount_rate) ^ (years[year] - years[1]))
     end
 
@@ -335,9 +335,9 @@ function formulate_gmcnf(model_data::Dict; verbose = true)
 
     flow_transformation = @constraint(
         model,
-        flow_transformation[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, y=1:num_years],
-        sum(transformation[i, j, l, k] * outflow[i, j, l, y] for l in 1:num_comm) 
-        == inflow[i, j, k, y])
+        flow_transformation[i in keys(outflow_edges), j in outflow_edges[i], k in 1:num_comm, l in 1:num_comm, y=1:num_years; transformation[i, j, k, l] != 0],
+        transformation[i, j, k, l] * outflow[i, j, l, y] == inflow[i, j, k, y]
+        )
 
     return model
 end
@@ -358,7 +358,7 @@ function print_duals(con_object)
     end
 end
 
-function print_constraint(con_object)
+function print_constraint(con_object::Array)
     for con in con_object
         println("$(con)")
     end

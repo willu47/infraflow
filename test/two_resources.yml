@@ -11,9 +11,6 @@ nodes:
     electricity: 
       2018: -1000
 - name: power_plant
-  demand:
-    water: 
-      2018: 0
   investment_cost: 800
   cap2act: 8760000  # kWh/MW/year
   residual_capacity:
@@ -26,9 +23,6 @@ nodes:
   input: diesel
   output: electricity
 - name: water_plant
-  demand:
-    electricity: 
-      2018: 0
   investment_cost: 800
   cap2act: 1000  # 1000 m^3/year
   residual_capacity:
@@ -64,7 +58,7 @@ edges:
   operational_cost: 
     electricity: 0.20
   losses: 
-    electricity: 0.0
+    electricity: 0.05
   capacity:
     electricity: 99999
   cap2act: 
@@ -76,7 +70,7 @@ edges:
   operational_cost: 
     electricity: 0.20
   losses: 
-    electricity: 0.0
+    electricity: 0.05
   capacity:
     electricity: 99999
   cap2act: 
