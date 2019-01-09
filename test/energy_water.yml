@@ -36,8 +36,6 @@ nodes:
   requirements:
   - name: diesel
     value: 3.0
-  - name: fresh_water
-    value: 2.5
   output: electricity
   input: diesel
 - name: water_plant
