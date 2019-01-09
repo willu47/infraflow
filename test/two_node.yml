@@ -1,0 +1,72 @@
+commodities:
+- electricity
+- water
+discount_rate: 0.1
+years:
+- 2018
+nodes: 
+- name: demand
+  demand:
+    electricity: 
+      2018: -1000
+- name: power_plant
+  demand:
+    water: 
+      2018: 0
+  investment_cost: 800
+  cap2act: 8760000  # kWh/MW/year
+  residual_capacity:
+    2018: 1.0  # MW
+  requirements:
+  - name: water
+    value: 0.002  # m^3/kWh
+  output: electricity
+- name: water_plant
+  demand:
+    electricity: 
+      2018: 0
+  investment_cost: 800
+  cap2act: 1000  # 1000 m^3/year
+  residual_capacity:
+    2018: 1.0  # 1 megalitre/year plant
+  requirements:
+  - name: electricity
+    value: 1.3 # kWh/m^3
+  output: water
+edges:
+- source: power_plant
+  sink: demand
+  flow:
+  - name: electricity
+  operational_cost: 
+    electricity: 0.20
+  losses: 
+    electricity: 0.0
+  capacity:
+    electricity: 99999
+  cap2act: 
+    electricity: 1
+- source: power_plant
+  sink: water_plant
+  flow:
+  - name: electricity
+  operational_cost: 
+    electricity: 0.20
+  losses: 
+    electricity: 0.0
+  capacity:
+    electricity: 99999
+  cap2act: 
+    electricity: 1
+- source: water_plant
+  sink: power_plant
+  flow:
+  - name: water
+  operational_cost: 
+    water: 0.01
+  losses: 
+    water: 0.07
+  capacity:
+    water: 99999
+  cap2act: 
+    water: 1

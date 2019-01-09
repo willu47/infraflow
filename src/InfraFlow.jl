@@ -395,6 +395,11 @@ function run(file_path::String)
         println("new_capacity[i, j, k, y]")
         print_vars(new_capacity)
 
+        println("mass_balance[i, k, y]")
+        print_constraint(model[:mass_balance])
+        println("flow_transformation[i, j, k, y]")
+        print_constraint(model[:flow_transformation])
+
     else
         println("\nSolution not optimal\n")
         println("i,j=> $(model_data["nodes"])")

@@ -36,6 +36,8 @@ nodes:
   requirements:
   - name: diesel
     value: 3.0
+  - name: fresh_water
+    value: 2.5
   output: electricity
   input: diesel
 - name: water_plant
@@ -86,6 +88,18 @@ edges:
     raw_water: 1
 - source: water_plant
   sink: household
+  flow:
+  - name: fresh_water
+  operational_cost: 
+    fresh_water: 0.01
+  losses: 
+    fresh_water: 0.2
+  capacity:
+    fresh_water: 999999
+  cap2act: 
+    fresh_water: 1
+- source: water_plant
+  sink: power_station
   flow:
   - name: fresh_water
   operational_cost: 
