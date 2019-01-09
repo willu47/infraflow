@@ -96,18 +96,6 @@ edges:
     fresh_water: 999999
   cap2act: 
     fresh_water: 1
-- source: water_plant
-  sink: power_station
-  flow:
-  - name: fresh_water
-  operational_cost: 
-    fresh_water: 0.01
-  losses: 
-    fresh_water: 0.05
-  capacity:
-    fresh_water: 999999
-  cap2act: 
-    fresh_water: 1
 - source: diesel_resource
   sink: power_station
   flow:
