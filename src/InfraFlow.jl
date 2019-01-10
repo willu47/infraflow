@@ -358,7 +358,7 @@ function print_duals(con_object)
     end
 end
 
-function print_constraint(con_object::Array)
+function print_constraint(con_object)
     for con in con_object
         println("$(con)")
     end
