@@ -1,7 +1,10 @@
 module InfraFlow
 
-using JuMP, GLPK, Test, YAML, Logging
+include("delim.jl")
+
+using JuMP, GLPK, Test, YAML, Logging, Gurobi
 const MOI = JuMP.MathOptInterface
+
 
 """
 Author: Will Usher
@@ -167,6 +170,15 @@ function get_data(file_path::AbstractString)
     model_data["requirements_inflow"] = requirements_inflow
     model_data["requirements_outflow"] = requirements_outflow
 
+    source_nodes = view(edges, :, 1)
+    sink_nodes = view(edges, :, 2)
+
+    outflow_edges = make_edge_dict(source_nodes, sink_nodes)
+    inflow_edges = make_edge_dict(sink_nodes, source_nodes)
+
+    model_data["outflow_edges"] = outflow_edges
+    model_data["inflow_edges"] = inflow_edges
+
     return model_data
 end
 
@@ -175,7 +187,7 @@ end
     make_edge_dict(edge_nodes, other_nodes)
 
 """
-function make_edge_dict(edge_nodes, other_nodes)
+function make_edge_dict(edge_nodes::AbstractArray, other_nodes::AbstractArray)
     edges = Dict{Int8,Array{Int8}}()
     for node in Set(edge_nodes)
         for i in eachindex(edge_nodes)
@@ -197,19 +209,16 @@ end
 ``\\sum_{ijky} c_{ijky}x_{ijky}`` 
 
 """
-function formulate_gmcnf(model_data::Dict{String,Any}; verbose = true)
+function formulate_gmcnf!(model_data::Dict{String,Any}, model; verbose = true)
     
     nodes = model_data["nodes"]
     edges = model_data["edges"]
     commodities = model_data["commodities"]
     discount_rate = model_data["discount_rate"]
     years = model_data["years"]
-     
-    source_nodes = view(edges, :, 1)
-    sink_nodes = view(edges, :, 2)
 
-    outflow_edges = make_edge_dict(source_nodes, sink_nodes)
-    inflow_edges = make_edge_dict(sink_nodes, source_nodes)
+    outflow_edges = model_data["outflow_edges"]
+    inflow_edges = model_data["inflow_edges"]
 
     num_nodes = length(nodes)
     num_edges = length(edges)
@@ -234,8 +243,6 @@ function formulate_gmcnf(model_data::Dict{String,Any}; verbose = true)
     
     # upper bound on operational decision variables (new_capacity)
     flow_bounds = model_data["flow_bounds"]
-
-    model = Model(with_optimizer(GLPK.Optimizer))
 
     new_capacity = @variable(model,
                          new_capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
@@ -368,7 +375,9 @@ function run(file_path::String)
 
     model_data = get_data(file_path)
 
-    @time model = formulate_gmcnf(model_data, verbose = true)
+    model = Model(with_optimizer(GLPK.Optimizer))
+
+    @time model = formulate_gmcnf!(model_data, model, verbose = true)
 
     println("Compiled model, now running")
     @time JuMP.optimize!(model)
@@ -384,23 +393,11 @@ function run(file_path::String)
         total_capacity = model[:total_annual_capacity]
         new_capacity = model[:new_capacity]
 
-        println("i,j=> $(model_data["nodes"])")
-        println("k=> $(model_data["commodities"])")
-        println("y=> $(model_data["years"])")    
-        println("outflow[i, j, k, y]")
-        print_vars(outflow)
-        println("inflow[i, j, k, y]")
-        print_vars(inflow)
-        println("total_capacity[i, j, k, y]")
-        print_vars(total_capacity)
-        println("new_capacity[i, j, k, y]")
-        print_vars(new_capacity)
-
-        println("mass_balance[i, k, y]")
-        print_constraint(model[:mass_balance])
-        println("flow_transformation[i, j, k, y]")
-        print_constraint(model[:flow_transformation])
-
+        write_results(outflow, "outflow", model_data)
+        write_results(inflow, "inflow", model_data)
+        write_results(total_capacity, "total_capacity", model_data)
+        write_results(new_capacity, "new_capacity", model_data)
+        
     else
         println("\nSolution not optimal\n")
         println("i,j=> $(model_data["nodes"])")

@@ -171,3 +171,13 @@ inflow = model[:inflow]
 end
 
 end
+
+@testset "results" begin
+
+data = InfraFlow.get_data("./two_node.yml")
+model = InfraFlow.formulate_gmcnf(data, verbose = false)
+JuMP.optimize!(model)
+
+outflow = model[:outflow]
+
+end
