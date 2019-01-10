@@ -2,7 +2,7 @@ module InfraFlow
 
 include("delim.jl")
 
-using JuMP, GLPK, Test, YAML, Logging, Gurobi
+using JuMP, GLPK, Test, YAML, Logging
 const MOI = JuMP.MathOptInterface
 
 
