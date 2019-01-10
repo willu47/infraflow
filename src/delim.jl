@@ -4,7 +4,7 @@ using JuMP
 
 export write_results
 
-function write_csv(data, filename)
+function write_csv(data::DataFrame, filename::AbstractString)
 
     @info "Writing csv file with data: " data filename
 
@@ -36,50 +36,30 @@ function write_results(variable::AbstractArray, name::AbstractString, model_data
 
     filename = "$(name).csv"
 
+    function get_values(variable::Any, i::Integer, j::Integer, comm::Integer, year::Integer)
+        source = nodes[i]
+        sink = nodes[j]
+        comm_name = commodities[comm]
+        year_name = years[year]
+        value = JuMP.value(variable[i, j, comm, year])
+        value != 0 ? push!(df, (source, sink, comm_name, year_name, value)) : 0
+    end
+
     function iterate_variable(variable::Array{JuMP.VariableRef,4})
         c_indices = CartesianIndices(size(variable))
         for index in eachindex(variable)
             (i, j, comm, year) = c_indices[index].I
-            source = nodes[i]
-            sink = nodes[j]
-            comm_name = commodities[comm]
-            year_name = years[year]
-            value = JuMP.value(variable[i, j, comm, year])
-            value != 0 ? push!(df, (source, sink, comm_name, year_name, value)) : 0
+            get_values(variable, i, j, comm, year)
         end
     end
 
     function iterate_variable(variable::JuMP.Containers.SparseAxisArray{JuMP.VariableRef,4,NTuple{4,Any}})
         for index in eachindex(variable)
             (i, j, comm, year) = index
-            source = nodes[i]
-            sink = nodes[j]
-            comm_name = commodities[comm]
-            year_name = years[year]
-            value = JuMP.value(variable[i, j, comm, year])
-            value != 0 ? push!(df, (source, sink, comm_name, year_name, value)) : 0
+            get_values(variable, i, j, comm, year)
         end
     end
 
     iterate_variable(variable)
     write_csv(df, filename)
 end
-
-    # for comm in eachindex(commodities)
-    #     for year in eachindex(years)
-    #         for i in 1:num_nodes
-    #             for j in 1:num_nodes
-    #                 source = nodes[i]
-    #                 sink = nodes[j]
-    #                 comm_name = commodities[comm]
-    #                 year_name = years[year]
-    #                 index_tuple = (i, j, comm, year)
-    #                 index = to_indices(variable, index_tuple)
-    #                 if isassigned(variable, index)
-    #                     value = JuMP.value(variable[i, j, comm, year])
-    #                     value != 0 ? push!(df, (source, sink, comm_name, year_name, value)) : 0
-    #                 end
-    #             end
-    #         end
-
-    #     end
