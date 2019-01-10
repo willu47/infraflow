@@ -1,0 +1,743 @@
+commodities:
+- electricity
+- water
+- diesel
+- waste
+- sunlight
+discount_rate: 0.1
+years:
+- 2018
+- 2019
+- 2020
+- 2021
+- 2022
+- 2023
+- 2024
+- 2025
+nodes:
+- name: 1_elec_hotel
+  demand:
+    electricity:
+      2018: -8.267246539
+      2019: -8.267246539
+      2020: -8.267246539
+      2021: -8.267246539
+      2022: -8.267246539
+      2023: -8.267246539
+      2024: -8.267246539
+      2025: -8.267246539
+- name: 1_elec_other
+  demand:
+    electricity:
+      2018: -54.45449759
+      2019: -54.45449759
+      2020: -54.45449759
+      2021: -54.45449759
+      2022: -54.45449759
+      2023: -54.45449759
+      2024: -54.45449759
+      2025: -54.45449759
+- name: 2_elec_hotel
+  demand:
+    electricity:
+      2018: -0.483043448
+      2019: -0.483043448
+      2020: -0.483043448
+      2021: -0.483043448
+      2022: -0.483043448
+      2023: -0.483043448
+      2024: -0.483043448
+      2025: -0.483043448
+- name: 2_elec_other
+  demand:
+    electricity:
+      2018: -26.84170199
+      2019: -26.84170199
+      2020: -26.84170199
+      2021: -26.84170199
+      2022: -26.84170199
+      2023: -26.84170199
+      2024: -26.84170199
+      2025: -26.84170199
+- name: 3_elec_hotel
+  demand:
+    electricity:
+      2018: -7.022595779
+      2019: -7.022595779
+      2020: -7.022595779
+      2021: -7.022595779
+      2022: -7.022595779
+      2023: -7.022595779
+      2024: -7.022595779
+      2025: -7.022595779
+- name: 3_elec_other
+  demand:
+    electricity:
+      2018: -22.54128616
+      2019: -22.54128616
+      2020: -22.54128616
+      2021: -22.54128616
+      2022: -22.54128616
+      2023: -22.54128616
+      2024: -22.54128616
+      2025: -22.54128616
+- name: 4_elec_hotel
+  demand:
+    electricity:
+      2018: -3.342367718
+      2019: -3.342367718
+      2020: -3.342367718
+      2021: -3.342367718
+      2022: -3.342367718
+      2023: -3.342367718
+      2024: -3.342367718
+      2025: -3.342367718
+- name: 4_elec_other
+  demand:
+    electricity:
+      2018: -29.4086834
+      2019: -29.4086834
+      2020: -29.4086834
+      2021: -29.4086834
+      2022: -29.4086834
+      2023: -29.4086834
+      2024: -29.4086834
+      2025: -29.4086834
+- name: 5_elec_hotel
+  demand:
+    electricity:
+      2018: -44.60396074
+      2019: -44.60396074
+      2020: -44.60396074
+      2021: -44.60396074
+      2022: -44.60396074
+      2023: -44.60396074
+      2024: -44.60396074
+      2025: -44.60396074
+- name: 5_elec_other
+  demand:
+    electricity:
+      2018: -37.2002749
+      2019: -37.2002749
+      2020: -37.2002749
+      2021: -37.2002749
+      2022: -37.2002749
+      2023: -37.2002749
+      2024: -37.2002749
+      2025: -37.2002749
+- name: 6_elec_hotel
+  demand:
+    electricity:
+      2018: -1.363826619
+      2019: -1.363826619
+      2020: -1.363826619
+      2021: -1.363826619
+      2022: -1.363826619
+      2023: -1.363826619
+      2024: -1.363826619
+      2025: -1.363826619
+- name: 6_elec_other
+  demand:
+    electricity:
+      2018: -48.94951598
+      2019: -48.94951598
+      2020: -48.94951598
+      2021: -48.94951598
+      2022: -48.94951598
+      2023: -48.94951598
+      2024: -48.94951598
+      2025: -48.94951598
+- name: 7_elec_hotel
+  demand:
+    electricity:
+      2018: -11.01695916
+      2019: -11.01695916
+      2020: -11.01695916
+      2021: -11.01695916
+      2022: -11.01695916
+      2023: -11.01695916
+      2024: -11.01695916
+      2025: -11.01695916
+- name: 7_elec_other
+  demand:
+    electricity:
+      2018: -53.30403998
+      2019: -53.30403998
+      2020: -53.30403998
+      2021: -53.30403998
+      2022: -53.30403998
+      2023: -53.30403998
+      2024: -53.30403998
+      2025: -53.30403998
+- name: transmission_network
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity    
+- name: substation_1
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_2
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_3
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_4
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_5
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_6
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: substation_7
+  investment_cost: 1000
+  cap2act: 1
+  residual_capacity:
+    2018: 99999999
+    2019: 99999999
+    2020: 99999999
+    2021: 99999999
+    2022: 99999999
+    2023: 99999999
+    2024: 99999999
+    2025: 99999999
+  input: electricity
+  output: electricity  
+- name: diesel_plant
+  investment_cost: 800000  # £/MW
+  cap2act: 8.76  # kWh/MW/year
+  residual_capacity:
+    2018: 68.0  # MW
+    2019: 68.0  # MW
+    2020: 68.0  # MW
+    2021: 68.0  # MW
+    2022: 68.0  # MW
+    2023: 68.0  # MW
+    2024: 68.0  # MW
+    2025: 68.0  # MW
+  requirements:
+  - name: diesel
+    value: 3 # kWh/kWh
+  input: diesel
+  output: electricity
+- name: small_solar
+  investment_cost: 1500000  # £/MW
+  cap2act: 8.76  # kWh/MW/year
+  residual_capacity:
+    2018: 3.0  # MW
+    2019: 3.0  # MW
+    2020: 3.0  # MW
+    2021: 3.0  # MW
+    2022: 3.0  # MW
+    2023: 3.0  # MW
+    2024: 3.0  # MW
+    2025: 3.0  # MW
+  requirements:
+  - name: sunlight
+    value: 1 # kWh/kWh
+  input: sunlight
+  output: electricity
+- name: utility_solar
+  investment_cost: 1200000  # £/MW
+  cap2act: 8.76  # kWh/MW/year
+  residual_capacity:
+    2018: 0.19  # MW
+    2019: 0.19  # MW
+    2020: 0.19  # MW
+    2021: 0.19  # MW
+    2022: 0.19  # MW
+    2023: 0.19  # MW
+    2024: 0.19  # MW
+    2025: 0.19  # MW
+  requirements:
+  - name: sunlight
+    value: 1 # kWh/kWh
+  input: sunlight
+  output: electricity
+- name: incineration
+  investment_cost: 1600000  # £/MW
+  cap2act: 8.76  # kWh/MW/year
+  residual_capacity:
+    2018: 1.387755102  # MW
+    2019: 1.387755102  # MW
+    2020: 1.387755102  # MW
+    2021: 1.387755102  # MW
+    2022: 1.387755102  # MW
+    2023: 1.387755102  # MW
+    2024: 1.387755102  # MW
+    2025: 1.387755102  # MW
+  requirements:
+  - name: waste
+    value: 3  # kWh/kWh
+  input: waste
+  output: electricity
+# Resources
+- name: diesel_resource
+  demand: 
+    diesel:
+      2018: 999999
+      2019: 999999
+      2020: 999999
+      2021: 999999
+      2022: 999999
+      2023: 999999
+      2024: 999999
+      2025: 999999
+  investment_cost: 10
+  cap2act: 8760
+  output: diesel
+- name: sunlight_resource
+  demand: 
+    sunlight:
+      2018: 999999
+      2019: 999999
+      2020: 999999
+      2021: 999999
+      2022: 999999
+      2023: 999999
+      2024: 999999
+      2025: 999999
+  investment_cost: 10
+  cap2act: 8760
+  output: sunlight
+- name: waste_resource
+  demand: 
+    waste:
+      2018: 999999
+      2019: 999999
+      2020: 999999
+      2021: 999999
+      2022: 999999
+      2023: 999999
+      2024: 999999
+      2025: 999999
+  investment_cost: 10
+  cap2act: 8760
+  output: waste   
+edges:
+- source: diesel_plant
+  sink: transmission_network
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: small_solar
+  sink: transmission_network
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: utility_solar
+  sink: transmission_network
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: incineration
+  sink: transmission_network
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_1
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_2
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_3
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_4
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_5
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_6
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: transmission_network
+  sink: substation_7
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_1
+  sink: 1_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_1
+  sink: 1_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_2
+  sink: 2_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_2
+  sink: 2_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_3
+  sink: 3_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_3
+  sink: 3_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_4
+  sink: 4_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_4
+  sink: 4_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_5
+  sink: 5_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_5
+  sink: 5_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_6
+  sink: 6_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_6
+  sink: 6_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_7
+  sink: 7_elec_hotel
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: substation_7
+  sink: 7_elec_other
+  flow:
+  - name: electricity
+  operational_cost:
+    electricity: 0.001
+  losses:
+    electricity: 0.05
+  capacity:
+    electricity: 9999999
+  cap2act:
+    electricity: 1
+- source: diesel_resource
+  sink: diesel_plant
+  flow:
+  - name: diesel
+  operational_cost:
+    diesel: 0.001
+  losses:
+    diesel: 0.05
+  capacity:
+    diesel: 9999999
+  cap2act:
+    diesel: 1
+- source: sunlight_resource
+  sink: small_solar
+  flow:
+  - name: sunlight
+  operational_cost:
+    sunlight: 0.001
+  losses:
+    sunlight: 0.05
+  capacity:
+    sunlight: 9999999
+  cap2act:
+    sunlight: 1
+- source: sunlight_resource
+  sink: utility_solar
+  flow:
+  - name: sunlight
+  operational_cost:
+    sunlight: 0.001
+  losses:
+    sunlight: 0.05
+  capacity:
+    sunlight: 9999999
+  cap2act:
+    sunlight: 1
+- source: waste_resource
+  sink: incineration
+  flow:
+  - name: waste
+  operational_cost:
+    waste: 0.001
+  losses:
+    waste: 0.05
+  capacity:
+    waste: 9999999
+  cap2act:
+    waste: 1

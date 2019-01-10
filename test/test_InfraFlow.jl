@@ -119,6 +119,21 @@ end
 
 end
 
+@testset "interdependency" begin
+
+data = InfraFlow.get_data("./two_node.yml")
+model = InfraFlow.formulate_gmcnf(data, verbose = false)
+JuMP.optimize!(model)
+
+outflow = model[:outflow]
+inflow = model[:inflow]
+
+@test JuMP.value(inflow[2, 1, 1, 1]) ≈ 1000
+@test JuMP.value(outflow[2, 3, 1, 1]) ≈ 2.803536769463015
+@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 2.156566745740781
+
+end
+
 @testset "run_model" begin
 
 data = InfraFlow.get_data("./test_data.yml")
@@ -132,21 +147,6 @@ inflow = model[:inflow]
 @test JuMP.value(outflow[2, 1, 1, 1]) ≈ 5376.344086021505
 @test JuMP.value(outflow[2, 2, 2, 1]) ≈ 5376.344086021505
 @test JuMP.value(outflow[3, 2, 2, 1]) ≈ 16129.032258064515
-
-end
-
-@testset "interdependency" begin
-
-data = InfraFlow.get_data("./two_node.yml")
-model = InfraFlow.formulate_gmcnf(data, verbose = false)
-JuMP.optimize!(model)
-
-outflow = model[:outflow]
-inflow = model[:inflow]
-
-@test JuMP.value(inflow[2, 1, 1, 1]) ≈ 1000
-@test JuMP.value(outflow[2, 3, 1, 1]) ≈ 2.803536769463015
-@test JuMP.value(outflow[3, 2, 2, 1]) ≈ 2.156566745740781
 
 end
 
