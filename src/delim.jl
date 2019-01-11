@@ -46,7 +46,7 @@ function write_results(variable::AbstractArray, name::AbstractString, model_data
     end
 
     function iterate_variable(variable::Array{JuMP.VariableRef,4})
-        c_indices = CartesianIndices(size(variable))
+        c_indices = keys(variable)
         for index in eachindex(variable)
             (i, j, comm, year) = c_indices[index].I
             get_values(variable, i, j, comm, year)

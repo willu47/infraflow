@@ -5,7 +5,7 @@ include("delim.jl")
 using JuMP, GLPK, Test, YAML, Logging
 const MOI = JuMP.MathOptInterface
 
-
+export get_data, formulate_gmcnf!, run
 """
 Author: Will Usher
 Date: 3rd January 2018
