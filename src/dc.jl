@@ -35,6 +35,11 @@ function formulate!(model)
     flow_cost[4, 2] = 0.1
     flow_cost[4, 3] = 0.1
 
+    capacity = zeros(Float64, num_nodes, num_nodes)
+    capacity[1, 4] = 110
+    capacity[4, 2] = 10
+    capacity[4, 3] = 100
+
     demand = [200 -10 -100 0]
 
     bandwidth = [10 10 10]
@@ -42,6 +47,12 @@ function formulate!(model)
     flow = @variable(
         model,
         flow[i=keys(outflow_edges), j=outflow_edges[i]],
+        lower_bound = 0
+    )
+
+    new_capacity = @variable(
+        model,
+        new_capacity[i=keys(outflow_edges), j=outflow_edges[i]],
         lower_bound = 0
     )
 
@@ -71,12 +82,11 @@ function formulate!(model)
         mass_balance_expression[i] <= demand[i]
     )
 
-    # @constraint(
-    #     model,
-    #     sum(demand[i] for i=1:num_nodes) == 0
-    # )
-
-
+    edge_capacity = @constraint(
+        model,
+        edge_capacity[i=keys(outflow_edges), j in outflow_edges[i]],
+        flow[i, j] <= capacity[i, j]
+    )
 
 end
 
@@ -96,4 +106,5 @@ feasible = JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 
 InfraFlow.print_vars(model[:flow])
 InfraFlow.print_constraint(model[:mass_balance])
+InfraFlow.print_constraint(model[:edge_capacity])
 end
