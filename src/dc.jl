@@ -35,12 +35,17 @@ function formulate!(model)
     flow_cost[4, 2] = 0.1
     flow_cost[4, 3] = 0.1
 
-    capacity = zeros(Float64, num_nodes, num_nodes)
-    capacity[1, 4] = 110
-    capacity[4, 2] = 10
-    capacity[4, 3] = 100
+    cap_cost = zeros(Float64, num_nodes, num_nodes)
+    flow_cost[1, 4] = 0.05
+    flow_cost[4, 2] = 0.05
+    flow_cost[4, 3] = 0.05
 
-    demand = [200 -10 -100 0]
+    existing_bandwidth = zeros(Float64, num_nodes, num_nodes)
+    existing_bandwidth[1, 4] = 110
+    existing_bandwidth[4, 2] = 10
+    existing_bandwidth[4, 3] = 100
+
+    demand = [200 -100 -100 0]
 
     bandwidth = [10 10 10]
 
@@ -50,16 +55,22 @@ function formulate!(model)
         lower_bound = 0
     )
 
-    new_capacity = @variable(
+    new_bandwidth = @variable(
         model,
-        new_capacity[i=keys(outflow_edges), j=outflow_edges[i]],
+        new_bandwidth[i=keys(outflow_edges), j=outflow_edges[i]],
+        lower_bound = 0
+    )
+
+    total_bandwidth = @variable(
+        model,
+        total_bandwidth[i=keys(outflow_edges), j=outflow_edges[i]],
         lower_bound = 0
     )
 
     @objective(
         model, 
         Min, 
-        sum(flow_cost[i, j] * flow[i, j] for i=keys(outflow_edges), j=outflow_edges[i])
+        sum(flow_cost[i, j] * flow[i, j] + cap_cost[i, j] + new_bandwidth[i, j] for i=keys(outflow_edges), j=outflow_edges[i])
     )
 
     @expression(
@@ -82,14 +93,29 @@ function formulate!(model)
         mass_balance_expression[i] <= demand[i]
     )
 
-    edge_capacity = @constraint(
+    total_cap = @constraint(
         model,
-        edge_capacity[i=keys(outflow_edges), j in outflow_edges[i]],
-        flow[i, j] <= capacity[i, j]
+        total_cap[i=keys(outflow_edges), j in outflow_edges[i]],
+        total_bandwidth[i, j] == existing_bandwidth[i, j] + new_bandwidth[i, j]
     )
 
-end
+    edge_bandwidth = @constraint(
+        model,
+        edge_bandwidth[i=keys(outflow_edges), j in outflow_edges[i]],
+        flow[i, j] <= total_bandwidth[i, j]
+    )
 
+    for i in 1:num_nodes
+        if haskey(outflow_edges, i) & haskey(inflow_edges, i)
+            for j in outflow_edges[i]
+                for k in inflow_edges[i]
+                    @constraint(model, flow[i, j] <= total_bandwidth[k, i])
+                end
+            end
+        end
+    end
+
+end
 
 model = Model(with_optimizer(GLPK.Optimizer))
 formulate!(model)
@@ -105,6 +131,8 @@ status = JuMP.termination_status(model) == MOI.OPTIMAL
 feasible = JuMP.primal_status(model) == MOI.FEASIBLE_POINT
 
 InfraFlow.print_vars(model[:flow])
+InfraFlow.print_vars(model[:new_bandwidth])
+InfraFlow.print_vars(model[:total_bandwidth])
 InfraFlow.print_constraint(model[:mass_balance])
-InfraFlow.print_constraint(model[:edge_capacity])
+InfraFlow.print_constraint(model[:edge_bandwidth])
 end
