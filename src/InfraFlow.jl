@@ -59,7 +59,7 @@ function get_data(file_path::AbstractString)
     outflow_cost = zeros(Float64, (num_nodes, num_nodes, num_comm))
     inflow_cost = zeros(Float64,(num_nodes, num_nodes, num_comm))
     residual_capacity = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
-    maximum_new_capacity = fill(99999999999999999999, (num_nodes, num_nodes, num_comm, num_years))
+    maximum_new_capacity = fill(99999999999999999999.0, (num_nodes, num_nodes, num_comm, num_years))
     transformation = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
 
     requirements_outflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
