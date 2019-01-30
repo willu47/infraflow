@@ -58,7 +58,8 @@ function get_data(file_path::AbstractString)
     cap2act = zeros(Float64, (num_nodes, num_nodes, num_comm))
     outflow_cost = zeros(Float64, (num_nodes, num_nodes, num_comm))
     inflow_cost = zeros(Float64,(num_nodes, num_nodes, num_comm))
-    flow_bounds = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
+    residual_capacity = zeros(Float64, (num_nodes, num_nodes, num_comm, num_years))
+    maximum_new_capacity = fill(99999999999999999999, (num_nodes, num_nodes, num_comm, num_years))
     transformation = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
 
     requirements_outflow = zeros(Float64, (num_nodes, num_nodes, num_comm, num_comm))
@@ -150,9 +151,15 @@ function get_data(file_path::AbstractString)
                 if haskey(node, "residual_capacity")
                     for (year, value) in node["residual_capacity"]
                         year_idx = years[year]
-                        flow_bounds[node_idx, node_idx, comm_idx, year_idx] = value
+                        residual_capacity[node_idx, node_idx, comm_idx, year_idx] = value
                     end
                 end
+                if haskey(node, "maximum_new_capacity")
+                    for (year, value) in node["maximum_new_capacity"]
+                        year_idx = years[year]
+                        maximum_new_capacity[node_idx, node_idx, comm_idx, year_idx] = value
+                    end
+                end                
             end
 
         end
@@ -165,7 +172,8 @@ function get_data(file_path::AbstractString)
     model_data["cap2act"] = cap2act
     model_data["outflow_cost"] = outflow_cost
     model_data["inflow_cost"] = inflow_cost
-    model_data["flow_bounds"] = flow_bounds
+    model_data["residual_capacity"] = residual_capacity
+    model_data["maximum_new_capacity"] = maximum_new_capacity
     model_data["transformation"] = transformation
     model_data["requirements_inflow"] = requirements_inflow
     model_data["requirements_outflow"] = requirements_outflow
@@ -242,7 +250,10 @@ function formulate_gmcnf!(model_data::Dict{String,Any}, model; verbose = true)
     transformation = model_data["transformation"]
     
     # upper bound on operational decision variables (new_capacity)
-    flow_bounds = model_data["flow_bounds"]
+    residual_capacity = model_data["residual_capacity"]
+
+    # upper bound on new capacity
+    maximum_new_capacity = model_data["maximum_new_capacity"]
 
     new_capacity = @variable(model,
                          new_capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
@@ -255,6 +266,12 @@ function formulate_gmcnf!(model_data::Dict{String,Any}, model; verbose = true)
                        inflow[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years], 
                        lower_bound = 0)
     
+    @constraint(
+        model,
+        max_new_capacity[i=1:num_nodes, j=1:num_nodes, k=1:num_comm, y=1:num_years],
+        new_capacity[i, j, k, y] <= maximum_new_capacity[i, j, k, y]
+    )
+
     @variable(
         model,
         total_annual_capacity[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
@@ -264,7 +281,7 @@ function formulate_gmcnf!(model_data::Dict{String,Any}, model; verbose = true)
     @constraint(
         model,
         accumulate_capacity[i in keys(outflow_edges), j in outflow_edges[i], k=1:num_comm, y=1:num_years],
-        total_annual_capacity[i, j, k, y] == flow_bounds[i, j, k, y] + sum(new_capacity[i, j, k, z] for z in 1:y)
+        total_annual_capacity[i, j, k, y] == residual_capacity[i, j, k, y] + sum(new_capacity[i, j, k, z] for z in 1:y)
     )
 
     @constraint(
@@ -407,7 +424,8 @@ function run(file_path::String)
         print_constraint(model[:mass_balance])
         println("flow_transformation[i, j, k, y]")
         print_constraint(model[:flow_transformation])
-
+        print_constraint(model[:max_new_capacity])
+        print_constraint(model[:accumulate_capacity])
     end
 
 end
